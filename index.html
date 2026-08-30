@@ -1,961 +1,118 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-
 <title>Cattle Vision</title>
-
 <style>
-
-*{box-sizing:border-box}
-
-body{
-
-  margin:0;
-
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-
-  background:#f3f5f2;
-
-  color:#202520;
-
-}
-
-header{
-
-  background:#173d24;
-
-  color:white;
-
-  padding:25px 18px 22px;
-
-  position:sticky;
-
-  top:0;
-
-  z-index:10;
-
-}
-
-header h1{
-
-  margin:0;
-
-  font-size:29px;
-
-}
-
-header p{
-
-  margin:5px 0 0;
-
-  opacity:.8;
-
-}
-
-main{
-
-  max-width:700px;
-
-  margin:auto;
-
-  padding:16px;
-
-  padding-bottom:50px;
-
-}
-
-.card{
-
-  background:white;
-
-  border-radius:18px;
-
-  padding:17px;
-
-  margin-bottom:15px;
-
-  box-shadow:0 2px 9px #00000012;
-
-}
-
-.grid{
-
-  display:grid;
-
-  grid-template-columns:1fr 1fr;
-
-  gap:12px;
-
-}
-
-.stat{
-
-  font-size:28px;
-
-  font-weight:700;
-
-}
-
-.small{
-
-  color:#687268;
-
-  font-size:14px;
-
-}
-
-button{
-
-  border:0;
-
-  border-radius:12px;
-
-  padding:13px 17px;
-
-  font-size:16px;
-
-  font-weight:600;
-
-  cursor:pointer;
-
-}
-
-.primary{
-
-  background:#286b3d;
-
-  color:white;
-
-}
-
-.secondary{
-
-  background:#e5ece6;
-
-  color:#173d24;
-
-}
-
-.danger{
-
-  background:#f5dddd;
-
-  color:#8a2020;
-
-}
-
-input,select,textarea{
-
-  width:100%;
-
-  padding:13px;
-
-  margin:6px 0 12px;
-
-  border:1px solid #ccd3cc;
-
-  border-radius:10px;
-
-  font-size:16px;
-
-  background:white;
-
-}
-
-textarea{
-
-  min-height:90px;
-
-  resize:vertical;
-
-}
-
-label{
-
-  font-weight:600;
-
-  font-size:14px;
-
-}
-
-.hidden{
-
-  display:none;
-
-}
-
-.animal{
-
-  border-left:5px solid #286b3d;
-
-}
-
-.animal h3{
-
-  margin:0 0 7px;
-
-}
-
-.photo-grid{
-
-  display:grid;
-
-  grid-template-columns:repeat(3,1fr);
-
-  gap:8px;
-
-  margin-top:10px;
-
-}
-
-.photo-grid img{
-
-  width:100%;
-
-  aspect-ratio:1;
-
-  object-fit:cover;
-
-  border-radius:10px;
-
-}
-
-.photo-preview{
-
-  width:100%;
-
-  max-height:300px;
-
-  object-fit:cover;
-
-  border-radius:14px;
-
-  margin-top:8px;
-
-}
-
-.action-row{
-
-  display:flex;
-
-  gap:8px;
-
-  flex-wrap:wrap;
-
-  margin-top:10px;
-
-}
-
-.action-row button{
-
-  flex:1;
-
-  min-width:120px;
-
-}
-
-.section-title{
-
-  margin-top:0;
-
-}
-
-.badge{
-
-  display:inline-block;
-
-  padding:5px 9px;
-
-  border-radius:20px;
-
-  background:#e5ece6;
-
-  color:#173d24;
-
-  font-size:13px;
-
-  font-weight:600;
-
-  margin:2px;
-
-}
-
-.empty{
-
-  text-align:center;
-
-  padding:25px 10px;
-
-  color:#687268;
-
-}
-
-#cameraInput{
-
-  display:none;
-
-}
-
-
-.photo-thumb{
-  border:0;
-  padding:0;
-  background:transparent;
-  border-radius:10px;
-  overflow:hidden;
-  min-width:0;
-}
-.photo-thumb img{
-  display:block;
-}
-.photo-date{
-  margin-top:8px;
-  color:#687268;
-  font-size:13px;
-}
-.modal{
-  position:fixed;
-  inset:0;
-  z-index:100;
-  background:#000000d9;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:18px;
-}
-.modal.hidden{
-  display:none;
-}
-.modal-content{
-  width:min(700px,100%);
-  max-height:95vh;
-  overflow:auto;
-  background:white;
-  border-radius:16px;
-  padding:12px;
-}
-.modal-content img{
-  display:block;
-  width:100%;
-  max-height:75vh;
-  object-fit:contain;
-  border-radius:10px;
-}
-.photo-status{
-  margin-top:10px;
-  text-align:center;
-}
-#cameraInput,#libraryInput{
-  display:none;
-}
-
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f5f2;color:#202520}header{background:#173d24;color:white;padding:25px 18px 22px;position:sticky;top:0;z-index:10}header h1{margin:0;font-size:29px}header p{margin:5px 0 0;opacity:.8}main{max-width:700px;margin:auto;padding:16px 16px 50px}.card{background:white;border-radius:18px;padding:17px;margin-bottom:15px;box-shadow:0 2px 9px #00000012}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{font-size:28px;font-weight:700}.small{color:#687268;font-size:14px}.muted{color:#687268}button{border:0;border-radius:12px;padding:13px 17px;font-size:16px;font-weight:600;cursor:pointer}.primary{background:#286b3d;color:white}.secondary{background:#e5ece6;color:#173d24}.danger{background:#f5dddd;color:#8a2020}input,select,textarea{width:100%;padding:13px;margin:6px 0 12px;border:1px solid #ccd3cc;border-radius:10px;font-size:16px;background:white}textarea{min-height:88px;resize:vertical}label{font-weight:600;font-size:14px}.hidden{display:none!important}.animal{border-left:5px solid #286b3d}.animal h3{margin:0 0 7px}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.photo-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}.action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.action-row button{flex:1;min-width:120px}.section-title{margin-top:0}.badge{display:inline-block;padding:5px 9px;border-radius:20px;background:#e5ece6;color:#173d24;font-size:13px;font-weight:600;margin:2px}.empty{text-align:center;padding:25px 10px;color:#687268}.photo-thumb{border:0;padding:0;background:transparent;border-radius:10px;overflow:hidden;min-width:0}.photo-thumb img{display:block}.photo-date{margin-top:8px;color:#687268;font-size:13px}.modal{position:fixed;inset:0;z-index:100;background:#000000d9;display:flex;align-items:center;justify-content:center;padding:18px}.modal.hidden{display:none}.modal-content{width:min(700px,100%);max-height:95vh;overflow:auto;background:white;border-radius:16px;padding:16px}.modal-content img{display:block;width:100%;max-height:75vh;object-fit:contain;border-radius:10px}.photo-status{margin-top:10px;text-align:center}#cameraInput,#libraryInput{display:none}.record-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.record-head h2{margin:0}.record-section{border-top:1px solid #e4e8e4;margin-top:18px;padding-top:16px}.record-section h3{margin:0 0 10px}.history-item{background:#f7f9f7;border:1px solid #e2e8e2;border-radius:12px;padding:11px;margin:8px 0}.history-title{font-weight:700}.history-meta{font-size:13px;color:#687268;margin-top:3px}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}.summary-line{margin:7px 0}.due-badge{background:#fff1cc;color:#745600}.success-badge{background:#dff1e3;color:#165a2c}@media(max-width:520px){.two-col{grid-template-columns:1fr}.action-row button{min-width:105px}.record-head{display:block}.record-head button{margin-top:8px}}
 </style>
-
 </head>
-
 <body>
-
-<header>
-
-  <h1>🐄 Cattle Vision</h1>
-
-  <p>Your herd. Your records. Your operation.</p>
-
-</header>
-
+<header><h1>🐄 Cattle Vision</h1><p>Your herd. Your records. Your operation.</p></header>
 <main>
-
-<!-- DASHBOARD -->
-
 <div class="grid">
-
-  <div class="card">
-
-    <div class="stat" id="count">0</div>
-
-    <div class="small">Total Cattle</div>
-
-  </div>
-
-  <div class="card">
-
-    <div class="stat" id="calves">0</div>
-
-    <div class="small">Calves</div>
-
-  </div>
-
-  <div class="card">
-
-    <div class="stat" id="cows">0</div>
-
-    <div class="small">Cows</div>
-
-  </div>
-
-  <div class="card">
-
-    <div class="stat" id="bulls">0</div>
-
-    <div class="small">Bulls</div>
-
-  </div>
-
+  <div class="card"><div class="stat" id="count">0</div><div class="small">Total Cattle</div></div>
+  <div class="card"><div class="stat" id="calves">0</div><div class="small">Calves</div></div>
+  <div class="card"><div class="stat" id="cows">0</div><div class="small">Cows</div></div>
+  <div class="card"><div class="stat" id="bulls">0</div><div class="small">Bulls</div></div>
 </div>
-
-<!-- ADD ANIMAL -->
-
-<div class="card">
-
-  <button class="primary" style="width:100%" onclick="showAdd()">
-
-    ➕ Add Animal
-
-  </button>
-
-</div>
-
+<div class="card"><button class="primary" style="width:100%" onclick="showAdd()">➕ Add Animal</button></div>
 <div id="add" class="card hidden">
-
   <h2 class="section-title">Add Animal</h2>
-
-  <label>Tag Number</label>
-
-  <input id="tag" placeholder="Example: 937">
-
-  <label>Sex / Type</label>
-
-  <select id="sex">
-
-    <option>Cow</option>
-
-    <option>Bull</option>
-
-    <option>Heifer</option>
-
-    <option>Steer</option>
-
-    <option>Calf</option>
-
-  </select>
-
-  <label>Birth Date</label>
-
-  <input id="birth" type="date">
-
-  <label>Location</label>
-
-  <input id="location" placeholder="East lot, pasture 3, etc.">
-
-  <label>Dam / Mother</label>
-
-  <input id="dam" placeholder="Example: 521">
-
-  <label>Sire / Father</label>
-
-  <input id="sire" placeholder="Example: 314">
-
-  <label>Notes</label>
-
-  <textarea id="notes"
-
-    placeholder="Anything you want to remember about this animal..."></textarea>
-
-  <div class="action-row">
-
-    <button class="primary" onclick="addAnimal()">Save Animal</button>
-
-    <button class="secondary" onclick="hideAdd()">Cancel</button>
-
-  </div>
-
+  <label>Tag Number</label><input id="tag" placeholder="Example: 937">
+  <label>Sex / Type</label><select id="sex"><option>Cow</option><option>Bull</option><option>Heifer</option><option>Steer</option><option>Calf</option></select>
+  <label>Birth Date</label><input id="birth" type="date">
+  <label>Location</label><input id="location" placeholder="East lot, pasture 3, etc.">
+  <label>Dam / Mother</label><input id="dam" placeholder="Example: 521">
+  <label>Sire / Father</label><input id="sire" placeholder="Example: 314">
+  <label>Notes</label><textarea id="notes" placeholder="Anything you want to remember about this animal..."></textarea>
+  <div class="action-row"><button class="primary" onclick="addAnimal()">Save Animal</button><button class="secondary" onclick="hideAdd()">Cancel</button></div>
 </div>
-
-<!-- CAMERA -->
-
 <div class="card">
-
   <h2 class="section-title">📸 Cattle Vision Photos</h2>
-
-  <p class="small">
-    Add photos to an animal by taking a new picture or choosing existing pictures.
-    Every photo stays attached to that animal's record.
-  </p>
-
-  <div class="action-row">
-    <button class="primary" onclick="chooseAnimalForPhoto('camera')">
-      📷 Take New Photo
-    </button>
-    <button class="secondary" onclick="chooseAnimalForPhoto('library')">
-      🖼 Choose Photos
-    </button>
-  </div>
-
-  <input id="cameraInput" type="file" accept="image/*"
-    capture="environment" onchange="handlePhotoFiles(event)">
-
-  <input id="libraryInput" type="file" accept="image/*"
-    multiple onchange="handlePhotoFiles(event)">
-
+  <p class="small">Add photos to an animal by taking a new picture or choosing existing pictures. Every photo stays attached to that animal's record.</p>
+  <div class="action-row"><button class="primary" onclick="chooseAnimalForPhoto('camera')">📷 Take New Photo</button><button class="secondary" onclick="chooseAnimalForPhoto('library')">🖼 Choose Photos</button></div>
+  <input id="cameraInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoFiles(event)">
+  <input id="libraryInput" type="file" accept="image/*" multiple onchange="handlePhotoFiles(event)">
   <div id="photoStatus" class="photo-status small"></div>
-
 </div>
-
-<!-- PHOTO VIEWER -->
-
-<div id="photoModal" class="modal hidden" onclick="closePhotoViewer(event)">
+<div id="photoModal" class="modal hidden" onclick="closePhotoViewer(event)"><div class="modal-content" onclick="event.stopPropagation()"><img id="largePhoto" alt="Animal photo"><div id="largePhotoDate" class="photo-date"></div><div class="action-row"><button class="danger" onclick="deleteCurrentPhoto()">Delete Photo</button><button class="secondary" onclick="closePhotoViewer()">Close</button></div></div></div>
+<div id="recordModal" class="modal hidden" onclick="closeRecord(event)">
   <div class="modal-content" onclick="event.stopPropagation()">
-    <img id="largePhoto" alt="Animal photo">
-    <div id="largePhotoDate" class="photo-date"></div>
-    <div class="action-row">
-      <button class="danger" onclick="deleteCurrentPhoto()">Delete Photo</button>
-      <button class="secondary" onclick="closePhotoViewer()">Close</button>
+    <div class="record-head"><div><h2 id="recordTitle">Animal Record</h2><div id="recordSubtitle" class="small"></div></div><button class="secondary" onclick="closeRecord()">Close</button></div>
+    <div class="record-section">
+      <h3>📝 Animal Details</h3>
+      <div class="two-col"><div><label>Tag Number</label><input id="editTag"></div><div><label>Sex / Type</label><select id="editSex"><option>Cow</option><option>Bull</option><option>Heifer</option><option>Steer</option><option>Calf</option></select></div></div>
+      <div class="two-col"><div><label>Birth Date</label><input id="editBirth" type="date"></div><div><label>Location</label><input id="editLocation"></div></div>
+      <div class="two-col"><div><label>Dam / Mother</label><input id="editDam"></div><div><label>Sire / Father</label><input id="editSire"></div></div>
+      <label>Notes</label><textarea id="editNotes"></textarea>
+      <button class="primary" style="width:100%" onclick="saveAnimalDetails()">Save Animal Details</button>
+    </div>
+    <div class="record-section">
+      <h3>🧬 Breeding History</h3>
+      <div id="breedingHistory"></div>
+      <div class="two-col"><div><label>Breeding Date</label><input id="breedDate" type="date"></div><div><label>Method</label><select id="breedMethod"><option>AI</option><option>Natural Service</option><option>Embryo Transfer</option><option>Other</option></select></div></div>
+      <div class="two-col"><div><label>Bull / Sire Used</label><input id="breedSire" placeholder="Bull name or tag"></div><div><label>Semen / Straw / Batch</label><input id="breedBatch" placeholder="Optional"></div></div>
+      <label>Breeding Notes</label><textarea id="breedNotes" placeholder="Heat, synchronization, technician, cleanup bull, etc."></textarea>
+      <button class="primary" style="width:100%" onclick="addBreedingRecord()">Add Breeding Record</button>
+    </div>
+    <div class="record-section">
+      <h3>🐮 Calving History</h3>
+      <div id="calvingHistory"></div>
+      <div class="two-col"><div><label>Calving Date</label><input id="calvingDate" type="date"></div><div><label>Calf Tag</label><input id="calfTag" placeholder="Optional"></div></div>
+      <div class="two-col"><div><label>Calf Sex</label><select id="calfSex"><option value="">Select</option><option>Heifer</option><option>Bull</option><option>Steer</option></select></div><div><label>Birth Weight</label><input id="birthWeight" inputmode="decimal" placeholder="lb"></div></div>
+      <div class="two-col"><div><label>Calving Ease</label><select id="calvingEase"><option>Unassisted</option><option>Easy Pull</option><option>Hard Pull</option><option>C-Section</option><option>Other</option></select></div><div><label>Calf Status</label><select id="calfStatus"><option>Alive</option><option>Stillborn</option><option>Lost Later</option><option>Other</option></select></div></div>
+      <label>Calving Notes</label><textarea id="calvingNotes" placeholder="Udder, vigor, assistance, disposition, etc."></textarea>
+      <button class="primary" style="width:100%" onclick="addCalvingRecord()">Add Calving Record</button>
     </div>
   </div>
 </div>
-
-<!-- HERD -->
-
-<div class="card">
-
-  <h2 class="section-title">🔎 Herd</h2>
-
-  <input
-
-    id="search"
-
-    placeholder="Search tag number..."
-
-    oninput="display()"
-
-  >
-
-  <div id="herd"></div>
-
-</div>
-
+<div class="card"><h2 class="section-title">🔎 Herd</h2><input id="search" placeholder="Search tag number, sire, dam, or location..." oninput="display()"><div id="herd"></div></div>
 </main>
-
 <script>
-
-let cattle = JSON.parse(localStorage.getItem("cattleVision") || "[]");
-let selectedAnimalId = null;
-let currentPhotoId = null;
-let photoDB = null;
-let photoCache = new Map();
-
-const PHOTO_DB_NAME = "cattleVisionPhotos";
-const PHOTO_STORE = "photos";
-const MAX_PHOTO_EDGE = 1600;
-const JPEG_QUALITY = 0.82;
-
-/* SAVE ANIMAL DATA */
-function save(){
-  localStorage.setItem("cattleVision", JSON.stringify(cattle));
-  display();
-}
-
-/* PHOTO DATABASE */
-function openPhotoDatabase(){
-  return new Promise((resolve,reject)=>{
-    const request = indexedDB.open(PHOTO_DB_NAME,1);
-
-    request.onupgradeneeded = function(){
-      const db = request.result;
-      if(!db.objectStoreNames.contains(PHOTO_STORE)){
-        const store = db.createObjectStore(PHOTO_STORE,{keyPath:"id"});
-        store.createIndex("animalId","animalId",{unique:false});
-      }
-    };
-
-    request.onsuccess = ()=>resolve(request.result);
-    request.onerror = ()=>reject(request.error);
-  });
-}
-
-function photoTransaction(mode){
-  return photoDB.transaction(PHOTO_STORE,mode).objectStore(PHOTO_STORE);
-}
-
-function getAllPhotoRecords(){
-  return new Promise((resolve,reject)=>{
-    const request = photoTransaction("readonly").getAll();
-    request.onsuccess = ()=>resolve(request.result || []);
-    request.onerror = ()=>reject(request.error);
-  });
-}
-
-function putPhotoRecord(photo){
-  return new Promise((resolve,reject)=>{
-    const request = photoTransaction("readwrite").put(photo);
-    request.onsuccess = ()=>resolve(photo);
-    request.onerror = ()=>reject(request.error);
-  });
-}
-
-function removePhotoRecord(id){
-  return new Promise((resolve,reject)=>{
-    const request = photoTransaction("readwrite").delete(id);
-    request.onsuccess = ()=>resolve();
-    request.onerror = ()=>reject(request.error);
-  });
-}
-
-function refreshPhotoCache(records){
-  photoCache = new Map();
-  records.forEach(photo=>{
-    const key = String(photo.animalId);
-    if(!photoCache.has(key)) photoCache.set(key,[]);
-    photoCache.get(key).push(photo);
-  });
-  photoCache.forEach(list=>list.sort((a,b)=>String(b.created).localeCompare(String(a.created))));
-}
-
-async function reloadPhotos(){
-  refreshPhotoCache(await getAllPhotoRecords());
-}
-
-async function migrateExistingPhotos(){
-  let changed = false;
-
-  for(const animal of cattle){
-    if(!Array.isArray(animal.photos) || !animal.photos.length) continue;
-
-    for(const oldPhoto of animal.photos){
-      if(!oldPhoto || !oldPhoto.image) continue;
-      await putPhotoRecord({
-        id:makePhotoId(),
-        animalId:animal.id,
-        image:oldPhoto.image,
-        created:oldPhoto.created || new Date().toISOString(),
-        date:oldPhoto.date || new Date().toLocaleString(),
-        analysis:oldPhoto.analysis || "AI analysis not connected yet."
-      });
-    }
-
-    animal.photos = [];
-    changed = true;
-  }
-
-  if(changed){
-    localStorage.setItem("cattleVision",JSON.stringify(cattle));
-  }
-}
-
-function makePhotoId(){
-  return Date.now() + Math.floor(Math.random()*1000000);
-}
-
-/* ADD ANIMAL */
-function showAdd(){
-  document.getElementById("add").classList.remove("hidden");
-  window.scrollTo({top:300,behavior:"smooth"});
-}
-
-function hideAdd(){
-  document.getElementById("add").classList.add("hidden");
-}
-
-function addAnimal(){
-  const tag = document.getElementById("tag").value.trim();
-
-  if(!tag){
-    alert("Enter a tag number.");
-    return;
-  }
-
-  if(cattle.some(animal=>animal.tag.toLowerCase()===tag.toLowerCase())){
-    alert("That tag number already exists.");
-    return;
-  }
-
-  const animal = {
-    id:Date.now(),
-    tag,
-    sex:document.getElementById("sex").value,
-    birth:document.getElementById("birth").value,
-    location:document.getElementById("location").value,
-    dam:document.getElementById("dam").value,
-    sire:document.getElementById("sire").value,
-    notes:document.getElementById("notes").value,
-    photos:[],
-    calvings:[],
-    breeding:[],
-    created:new Date().toISOString()
-  };
-
-  cattle.push(animal);
-  ["tag","birth","location","dam","sire","notes"].forEach(id=>{
-    document.getElementById(id).value="";
-  });
-  hideAdd();
-  save();
-  alert("Animal saved.");
-}
-
-/* PHOTO SELECTION */
-function chooseAnimalForPhoto(source){
-  if(!cattle.length){
-    alert("Add the animal to the herd first, then attach pictures to its record.");
-    return;
-  }
-
-  const tag = prompt("Enter the tag number for the animal:");
-  if(!tag) return;
-
-  const animal = cattle.find(a=>a.tag.toLowerCase()===tag.trim().toLowerCase());
-  if(!animal){
-    alert("Animal not found.");
-    return;
-  }
-
-  openPhotoPicker(animal.id,source);
-}
-
-function openPhotoPicker(animalId,source){
-  selectedAnimalId = animalId;
-  const input = document.getElementById(source==="library" ? "libraryInput" : "cameraInput");
-  input.click();
-}
-
-async function handlePhotoFiles(event){
-  const files = Array.from(event.target.files || []);
-  const animal = cattle.find(a=>String(a.id)===String(selectedAnimalId));
-  event.target.value="";
-
-  if(!files.length || !animal) return;
-  if(!photoDB){
-    alert("Photo storage is not available in this browser.");
-    return;
-  }
-
-  setPhotoStatus("Saving " + files.length + " photo" + (files.length===1 ? "…" : "s…"));
-
-  try{
-    for(const file of files){
-      if(!file.type.startsWith("image/")) continue;
-      const image = await resizePhoto(file);
-      await putPhotoRecord({
-        id:makePhotoId(),
-        animalId:animal.id,
-        image,
-        created:new Date().toISOString(),
-        date:new Date().toLocaleString(),
-        analysis:"AI analysis not connected yet."
-      });
-    }
-
-    await reloadPhotos();
-    display();
-    setPhotoStatus("");
-    alert(files.length + " photo" + (files.length===1 ? "" : "s") + " saved to Tag " + animal.tag + ".");
-  }catch(error){
-    console.error(error);
-    setPhotoStatus("");
-    alert("The photo could not be saved. Please try again.");
-  }
-}
-
-function resizePhoto(file){
-  return new Promise((resolve,reject)=>{
-    const url = URL.createObjectURL(file);
-    const image = new Image();
-
-    image.onload = function(){
-      let width = image.naturalWidth;
-      let height = image.naturalHeight;
-      const scale = Math.min(1,MAX_PHOTO_EDGE/Math.max(width,height));
-      width = Math.max(1,Math.round(width*scale));
-      height = Math.max(1,Math.round(height*scale));
-
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      context.drawImage(image,0,0,width,height);
-      URL.revokeObjectURL(url);
-
-      try{
-        resolve(canvas.toDataURL("image/jpeg",JPEG_QUALITY));
-      }catch(error){
-        reject(error);
-      }
-    };
-
-    image.onerror = function(){
-      URL.revokeObjectURL(url);
-      reject(new Error("Could not read image"));
-    };
-
-    image.src = url;
-  });
-}
-
-function setPhotoStatus(message){
-  document.getElementById("photoStatus").textContent = message;
-}
-
-/* PHOTO VIEWER */
-function viewPhoto(id){
-  const photo = Array.from(photoCache.values()).flat().find(p=>String(p.id)===String(id));
-  if(!photo) return;
-
-  currentPhotoId = photo.id;
-  document.getElementById("largePhoto").src = photo.image;
-  document.getElementById("largePhotoDate").textContent = "Added " + photo.date;
-  document.getElementById("photoModal").classList.remove("hidden");
-}
-
-function closePhotoViewer(event){
-  if(event && event.target!==document.getElementById("photoModal")) return;
-  currentPhotoId = null;
-  document.getElementById("largePhoto").src = "";
-  document.getElementById("photoModal").classList.add("hidden");
-}
-
-async function deleteCurrentPhoto(){
-  if(currentPhotoId===null || !confirm("Delete this photo? This cannot be undone.")) return;
-
-  try{
-    await removePhotoRecord(currentPhotoId);
-    await reloadPhotos();
-    closePhotoViewer();
-    display();
-  }catch(error){
-    console.error(error);
-    alert("The photo could not be deleted.");
-  }
-}
-
-/* DELETE ANIMAL */
-async function deleteAnimal(id){
-  const animal = cattle.find(a=>a.id===id);
-  if(!animal) return;
-
-  if(!confirm("Delete Tag " + animal.tag + " and all of its photos? This cannot be undone.")) return;
-
-  try{
-    const photos = photoCache.get(String(id)) || [];
-    for(const photo of photos){
-      await removePhotoRecord(photo.id);
-    }
-    cattle = cattle.filter(a=>a.id!==id);
-    await reloadPhotos();
-    save();
-  }catch(error){
-    console.error(error);
-    alert("The animal could not be deleted.");
-  }
-}
-
-/* ADD CALVING */
-function addCalving(id){
-  const animal = cattle.find(a=>a.id===id);
-  if(!animal) return;
-
-  const date = prompt("Calving date (YYYY-MM-DD):");
-  if(!date) return;
-  const calfTag = prompt("Calf tag number:");
-  const sex = prompt("Calf sex (Heifer/Bull/Steer):");
-
-  if(!Array.isArray(animal.calvings)) animal.calvings=[];
-  animal.calvings.push({date,calfTag:calfTag||"",sex:sex||""});
-  save();
-  alert("Calving record saved.");
-}
-
-/* DISPLAY HERD */
-function display(){
-  const search = document.getElementById("search");
-  const q = search ? search.value.toLowerCase() : "";
-  const list = cattle.filter(c=>c.tag.toLowerCase().includes(q));
-
-  document.getElementById("count").textContent=cattle.length;
-  document.getElementById("cows").textContent=cattle.filter(c=>c.sex==="Cow").length;
-  document.getElementById("bulls").textContent=cattle.filter(c=>c.sex==="Bull").length;
-  document.getElementById("calves").textContent=cattle.filter(c=>c.sex==="Calf"||c.sex==="Heifer").length;
-
-  const herd = document.getElementById("herd");
-  if(!list.length){
-    herd.innerHTML="<div class='empty'>No cattle recorded yet.</div>";
-    return;
-  }
-
-  herd.innerHTML=list.map(c=>{
-    const photos = photoCache.get(String(c.id)) || [];
-    const calvings = Array.isArray(c.calvings) ? c.calvings : [];
-
-    return `
-      <div class="card animal">
-        <h3>🐄 Tag ${escapeHTML(c.tag)}</h3>
-        <div>
-          <span class="badge">${escapeHTML(c.sex)}</span>
-          ${c.location ? `<span class="badge">📍 ${escapeHTML(c.location)}</span>` : ""}
-        </div>
-        ${c.birth ? `<div class="small">Born: ${escapeHTML(c.birth)}</div>` : ""}
-        ${c.dam ? `<div class="small">Dam: ${escapeHTML(c.dam)}</div>` : ""}
-        ${c.sire ? `<div class="small">Sire: ${escapeHTML(c.sire)}</div>` : ""}
-        ${c.notes ? `<p>${escapeHTML(c.notes)}</p>` : ""}
-
-        ${photos.length ? `
-          <div class="small">📸 ${photos.length} photo(s)</div>
-          <div class="photo-grid">
-            ${photos.map(photo=>`
-              <button class="photo-thumb" onclick="viewPhoto('${photo.id}')" aria-label="View photo">
-                <img src="${photo.image}" alt="Tag ${escapeHTML(c.tag)}">
-              </button>
-            `).join("")}
-          </div>
-        ` : `<div class="small" style="margin-top:10px">No photos yet.</div>`}
-
-        ${calvings.length ? `<div class="small" style="margin-top:10px">🐮 Calvings: ${calvings.length}</div>` : ""}
-
-        <div class="action-row">
-          <button class="primary" onclick="openPhotoPicker(${c.id},'camera')">📷 Take Photo</button>
-          <button class="secondary" onclick="openPhotoPicker(${c.id},'library')">🖼 Choose Photos</button>
-          <button class="secondary" onclick="addCalving(${c.id})">🐮 Calving</button>
-          <button class="danger" onclick="deleteAnimal(${c.id})">Delete</button>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-/* SECURITY */
-function escapeHTML(value){
-  return String(value||"")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-}
-
-/* START */
-async function start(){
-  display();
-
-  try{
-    photoDB = await openPhotoDatabase();
-    await migrateExistingPhotos();
-    await reloadPhotos();
-    display();
-  }catch(error){
-    console.error(error);
-    setPhotoStatus("Photo storage is unavailable in this browser.");
-  }
-}
-
+let cattle=JSON.parse(localStorage.getItem("cattleVision")||"[]");
+let selectedAnimalId=null,currentPhotoId=null,recordAnimalId=null,photoDB=null,photoCache=new Map();
+const PHOTO_DB_NAME="cattleVisionPhotos",PHOTO_STORE="photos",MAX_PHOTO_EDGE=1600,JPEG_QUALITY=.82;
+function normalizeAnimal(a){if(!Array.isArray(a.photos))a.photos=[];if(!Array.isArray(a.calvings))a.calvings=[];if(!Array.isArray(a.breeding))a.breeding=[];return a}cattle=cattle.map(normalizeAnimal);
+function save(){localStorage.setItem("cattleVision",JSON.stringify(cattle));display();if(recordAnimalId!==null)renderRecord()}
+function openPhotoDatabase(){return new Promise((resolve,reject)=>{const r=indexedDB.open(PHOTO_DB_NAME,1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(PHOTO_STORE)){const s=db.createObjectStore(PHOTO_STORE,{keyPath:"id"});s.createIndex("animalId","animalId",{unique:false})}};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function photoTransaction(mode){return photoDB.transaction(PHOTO_STORE,mode).objectStore(PHOTO_STORE)}
+function getAllPhotoRecords(){return new Promise((resolve,reject)=>{const r=photoTransaction("readonly").getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)})}
+function putPhotoRecord(photo){return new Promise((resolve,reject)=>{const r=photoTransaction("readwrite").put(photo);r.onsuccess=()=>resolve(photo);r.onerror=()=>reject(r.error)})}
+function removePhotoRecord(id){return new Promise((resolve,reject)=>{const r=photoTransaction("readwrite").delete(id);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
+function refreshPhotoCache(records){photoCache=new Map();records.forEach(p=>{const k=String(p.animalId);if(!photoCache.has(k))photoCache.set(k,[]);photoCache.get(k).push(p)});photoCache.forEach(list=>list.sort((a,b)=>String(b.created).localeCompare(String(a.created))))}
+async function reloadPhotos(){refreshPhotoCache(await getAllPhotoRecords())}
+async function migrateExistingPhotos(){let changed=false;for(const animal of cattle){if(!animal.photos.length)continue;for(const oldPhoto of animal.photos){if(!oldPhoto||!oldPhoto.image)continue;await putPhotoRecord({id:makeId(),animalId:animal.id,image:oldPhoto.image,created:oldPhoto.created||new Date().toISOString(),date:oldPhoto.date||new Date().toLocaleString(),analysis:oldPhoto.analysis||"AI analysis not connected yet."})}animal.photos=[];changed=true}if(changed)localStorage.setItem("cattleVision",JSON.stringify(cattle))}
+function makeId(){return Date.now()+Math.floor(Math.random()*1000000)}
+function showAdd(){document.getElementById("add").classList.remove("hidden");window.scrollTo({top:300,behavior:"smooth"})}function hideAdd(){document.getElementById("add").classList.add("hidden")}
+function addAnimal(){const tag=document.getElementById("tag").value.trim();if(!tag){alert("Enter a tag number.");return}if(cattle.some(a=>String(a.tag).toLowerCase()===tag.toLowerCase())){alert("That tag number already exists.");return}cattle.push({id:makeId(),tag,sex:sex.value,birth:birth.value,location:location.value,dam:dam.value,sire:sire.value,notes:notes.value,photos:[],calvings:[],breeding:[],created:new Date().toISOString()});["tag","birth","location","dam","sire","notes"].forEach(id=>document.getElementById(id).value="");hideAdd();save();alert("Animal saved.")}
+function chooseAnimalForPhoto(source){if(!cattle.length){alert("Add the animal to the herd first, then attach pictures to its record.");return}const tag=prompt("Enter the tag number for the animal:");if(!tag)return;const animal=cattle.find(a=>String(a.tag).toLowerCase()===tag.trim().toLowerCase());if(!animal){alert("Animal not found.");return}openPhotoPicker(animal.id,source)}
+function openPhotoPicker(animalId,source){selectedAnimalId=animalId;document.getElementById(source==="library"?"libraryInput":"cameraInput").click()}
+async function handlePhotoFiles(event){const files=Array.from(event.target.files||[]),animal=cattle.find(a=>String(a.id)===String(selectedAnimalId));event.target.value="";if(!files.length||!animal)return;if(!photoDB){alert("Photo storage is not available in this browser.");return}setPhotoStatus("Saving "+files.length+" photo"+(files.length===1?"…":"s…"));try{for(const file of files){if(!file.type.startsWith("image/"))continue;const image=await resizePhoto(file);await putPhotoRecord({id:makeId(),animalId:animal.id,image,created:new Date().toISOString(),date:new Date().toLocaleString(),analysis:"AI analysis not connected yet."})}await reloadPhotos();display();setPhotoStatus("");alert(files.length+" photo"+(files.length===1?"":"s")+" saved to Tag "+animal.tag+".")}catch(e){console.error(e);setPhotoStatus("");alert("The photo could not be saved. Please try again.")}}
+function resizePhoto(file){return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),image=new Image();image.onload=()=>{let w=image.naturalWidth,h=image.naturalHeight,s=Math.min(1,MAX_PHOTO_EDGE/Math.max(w,h));w=Math.max(1,Math.round(w*s));h=Math.max(1,Math.round(h*s));const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.drawImage(image,0,0,w,h);URL.revokeObjectURL(url);try{resolve(c.toDataURL("image/jpeg",JPEG_QUALITY))}catch(e){reject(e)}};image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Could not read image"))};image.src=url})}
+function setPhotoStatus(m){document.getElementById("photoStatus").textContent=m}
+function viewPhoto(id){const p=Array.from(photoCache.values()).flat().find(x=>String(x.id)===String(id));if(!p)return;currentPhotoId=p.id;largePhoto.src=p.image;largePhotoDate.textContent="Added "+p.date;photoModal.classList.remove("hidden")}
+function closePhotoViewer(event){if(event&&event.target!==photoModal)return;currentPhotoId=null;largePhoto.src="";photoModal.classList.add("hidden")}
+async function deleteCurrentPhoto(){if(currentPhotoId===null||!confirm("Delete this photo? This cannot be undone."))return;try{await removePhotoRecord(currentPhotoId);await reloadPhotos();closePhotoViewer();display()}catch(e){console.error(e);alert("The photo could not be deleted.")}}
+async function deleteAnimal(id){const animal=cattle.find(a=>a.id===id);if(!animal)return;if(!confirm("Delete Tag "+animal.tag+" and all of its photos and records? This cannot be undone."))return;try{for(const p of photoCache.get(String(id))||[])await removePhotoRecord(p.id);cattle=cattle.filter(a=>a.id!==id);await reloadPhotos();save()}catch(e){console.error(e);alert("The animal could not be deleted.")}}
+function openRecord(id){recordAnimalId=id;recordModal.classList.remove("hidden");renderRecord()}
+function closeRecord(event){if(event&&event.target!==recordModal)return;recordAnimalId=null;recordModal.classList.add("hidden")}
+function currentAnimal(){return cattle.find(a=>String(a.id)===String(recordAnimalId))}
+function renderRecord(){const a=currentAnimal();if(!a)return;normalizeAnimal(a);recordTitle.textContent="🐄 Tag "+a.tag;recordSubtitle.textContent=[a.sex,a.location].filter(Boolean).join(" • ");editTag.value=a.tag||"";editSex.value=a.sex||"Cow";editBirth.value=a.birth||"";editLocation.value=a.location||"";editDam.value=a.dam||"";editSire.value=a.sire||"";editNotes.value=a.notes||"";breedingHistory.innerHTML=a.breeding.length?a.breeding.slice().reverse().map((r,i)=>breedingHTML(r,a.breeding.length-1-i)).join(""):"<div class='small'>No breeding records yet.</div>";calvingHistory.innerHTML=a.calvings.length?a.calvings.slice().reverse().map((r,i)=>calvingHTML(r,a.calvings.length-1-i)).join(""):"<div class='small'>No calving records yet.</div>"}
+function breedingHTML(r,index){const due=r.date?estimatedDueDate(r.date):"";return `<div class="history-item"><div class="history-title">${escapeHTML(r.date||"Date not entered")} • ${escapeHTML(r.method||"Breeding")}</div><div class="history-meta">${r.sire?"Sire: "+escapeHTML(r.sire):""}${r.batch?" • Batch: "+escapeHTML(r.batch):""}</div>${due?`<div class="summary-line"><span class="badge due-badge">Est. due ${escapeHTML(due)}</span></div>`:""}${r.notes?`<div class="small">${escapeHTML(r.notes)}</div>`:""}<button class="danger" style="margin-top:8px;padding:8px 10px" onclick="deleteBreeding(${index})">Delete</button></div>`}
+function calvingHTML(r,index){return `<div class="history-item"><div class="history-title">${escapeHTML(r.date||"Date not entered")} ${r.calfTag?"• Calf "+escapeHTML(r.calfTag):""}</div><div class="history-meta">${[r.sex,r.birthWeight?r.birthWeight+" lb":"",r.ease,r.status].filter(Boolean).map(escapeHTML).join(" • ")}</div>${r.notes?`<div class="small">${escapeHTML(r.notes)}</div>`:""}<button class="danger" style="margin-top:8px;padding:8px 10px" onclick="deleteCalving(${index})">Delete</button></div>`}
+function saveAnimalDetails(){const a=currentAnimal();if(!a)return;const newTag=editTag.value.trim();if(!newTag){alert("Tag number cannot be blank.");return}if(cattle.some(x=>x.id!==a.id&&String(x.tag).toLowerCase()===newTag.toLowerCase())){alert("That tag number already exists.");return}a.tag=newTag;a.sex=editSex.value;a.birth=editBirth.value;a.location=editLocation.value.trim();a.dam=editDam.value.trim();a.sire=editSire.value.trim();a.notes=editNotes.value.trim();save();alert("Animal details saved.")}
+function addBreedingRecord(){const a=currentAnimal();if(!a)return;const date=breedDate.value;if(!date){alert("Enter the breeding date.");return}a.breeding.push({id:makeId(),date,method:breedMethod.value,sire:breedSire.value.trim(),batch:breedBatch.value.trim(),notes:breedNotes.value.trim(),created:new Date().toISOString()});breedDate.value="";breedSire.value="";breedBatch.value="";breedNotes.value="";save();alert("Breeding record saved.")}
+function addCalvingRecord(){const a=currentAnimal();if(!a)return;const date=calvingDate.value;if(!date){alert("Enter the calving date.");return}a.calvings.push({id:makeId(),date,calfTag:calfTag.value.trim(),sex:calfSex.value,birthWeight:birthWeight.value.trim(),ease:calvingEase.value,status:calfStatus.value,notes:calvingNotes.value.trim(),created:new Date().toISOString()});calvingDate.value="";calfTag.value="";calfSex.value="";birthWeight.value="";calvingNotes.value="";save();alert("Calving record saved.")}
+function deleteBreeding(index){const a=currentAnimal();if(!a||!confirm("Delete this breeding record?"))return;a.breeding.splice(index,1);save()}
+function deleteCalving(index){const a=currentAnimal();if(!a||!confirm("Delete this calving record?"))return;a.calvings.splice(index,1);save()}
+function estimatedDueDate(date){const d=new Date(date+"T12:00:00");if(Number.isNaN(d.getTime()))return"";d.setDate(d.getDate()+283);return d.toLocaleDateString()}
+function latestBreeding(a){if(!a.breeding||!a.breeding.length)return null;return a.breeding.slice().sort((x,y)=>String(y.date).localeCompare(String(x.date)))[0]}
+function display(){const q=(search?search.value:"").toLowerCase().trim();const list=cattle.filter(c=>[c.tag,c.sire,c.dam,c.location,c.notes].some(v=>String(v||"").toLowerCase().includes(q)));count.textContent=cattle.length;cows.textContent=cattle.filter(c=>c.sex==="Cow").length;bulls.textContent=cattle.filter(c=>c.sex==="Bull").length;calves.textContent=cattle.filter(c=>c.sex==="Calf"||c.sex==="Heifer").length;if(!list.length){herd.innerHTML="<div class='empty'>No cattle recorded yet.</div>";return}herd.innerHTML=list.map(c=>{normalizeAnimal(c);const photos=photoCache.get(String(c.id))||[],breed=latestBreeding(c);return `<div class="card animal"><h3>🐄 Tag ${escapeHTML(c.tag)}</h3><div><span class="badge">${escapeHTML(c.sex)}</span>${c.location?`<span class="badge">📍 ${escapeHTML(c.location)}</span>`:""}${c.calvings.length?`<span class="badge success-badge">🐮 ${c.calvings.length} calving${c.calvings.length===1?"":"s"}</span>`:""}${breed?`<span class="badge due-badge">🧬 Bred ${escapeHTML(breed.date)}</span>`:""}</div>${c.birth?`<div class="small">Born: ${escapeHTML(c.birth)}</div>`:""}${c.dam?`<div class="small">Dam: ${escapeHTML(c.dam)}</div>`:""}${c.sire?`<div class="small">Sire: ${escapeHTML(c.sire)}</div>`:""}${c.notes?`<p>${escapeHTML(c.notes)}</p>`:""}${photos.length?`<div class="small">📸 ${photos.length} photo(s)</div><div class="photo-grid">${photos.map(p=>`<button class="photo-thumb" onclick="viewPhoto('${p.id}')"><img src="${p.image}" alt="Tag ${escapeHTML(c.tag)}"></button>`).join("")}</div>`:`<div class="small" style="margin-top:10px">No photos yet.</div>`}<div class="action-row"><button class="primary" onclick="openRecord(${c.id})">📋 Record</button><button class="secondary" onclick="openPhotoPicker(${c.id},'camera')">📷 Photo</button><button class="secondary" onclick="openPhotoPicker(${c.id},'library')">🖼 Photos</button><button class="danger" onclick="deleteAnimal(${c.id})">Delete</button></div></div>`}).join("")}
+function escapeHTML(value){return String(value||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
+async function start(){display();try{photoDB=await openPhotoDatabase();await migrateExistingPhotos();await reloadPhotos();display()}catch(e){console.error(e);setPhotoStatus("Photo storage is unavailable in this browser.")}}
 start();
-
 </script>
-
 </body>
-
 </html>
