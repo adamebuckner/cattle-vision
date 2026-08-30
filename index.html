@@ -6,7 +6,7 @@
 
 <meta charset="UTF-8">
 
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 
 <title>Cattle Vision</title>
 
@@ -14,37 +14,293 @@
 
 *{box-sizing:border-box}
 
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f4f6f3;color:#202520}
+body{
 
-header{background:#173d24;color:white;padding:28px 20px 22px}
+  margin:0;
 
-h1{margin:0;font-size:30px}
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 
-header p{margin:5px 0 0;opacity:.8}
+  background:#f3f5f2;
 
-main{padding:18px;max-width:650px;margin:auto}
+  color:#202520;
 
-.card{background:white;border-radius:18px;padding:18px;margin-bottom:15px;box-shadow:0 2px 8px #00000012}
+}
 
-button{border:0;border-radius:12px;padding:13px 17px;font-size:16px;font-weight:600}
+header{
 
-.primary{background:#286b3d;color:white}
+  background:#173d24;
 
-.secondary{background:#e5ece6;color:#173d24}
+  color:white;
 
-input,select,textarea{width:100%;padding:13px;margin:6px 0 12px;border:1px solid #ccd3cc;border-radius:10px;font-size:16px}
+  padding:25px 18px 22px;
 
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  position:sticky;
 
-.stat{font-size:28px;font-weight:700}
+  top:0;
 
-.small{color:#687268;font-size:14px}
+  z-index:10;
 
-.cow{border-left:5px solid #286b3d}
+}
 
-.cow h3{margin:0 0 7px}
+header h1{
 
-.hidden{display:none}
+  margin:0;
+
+  font-size:29px;
+
+}
+
+header p{
+
+  margin:5px 0 0;
+
+  opacity:.8;
+
+}
+
+main{
+
+  max-width:700px;
+
+  margin:auto;
+
+  padding:16px;
+
+  padding-bottom:50px;
+
+}
+
+.card{
+
+  background:white;
+
+  border-radius:18px;
+
+  padding:17px;
+
+  margin-bottom:15px;
+
+  box-shadow:0 2px 9px #00000012;
+
+}
+
+.grid{
+
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:12px;
+
+}
+
+.stat{
+
+  font-size:28px;
+
+  font-weight:700;
+
+}
+
+.small{
+
+  color:#687268;
+
+  font-size:14px;
+
+}
+
+button{
+
+  border:0;
+
+  border-radius:12px;
+
+  padding:13px 17px;
+
+  font-size:16px;
+
+  font-weight:600;
+
+  cursor:pointer;
+
+}
+
+.primary{
+
+  background:#286b3d;
+
+  color:white;
+
+}
+
+.secondary{
+
+  background:#e5ece6;
+
+  color:#173d24;
+
+}
+
+.danger{
+
+  background:#f5dddd;
+
+  color:#8a2020;
+
+}
+
+input,select,textarea{
+
+  width:100%;
+
+  padding:13px;
+
+  margin:6px 0 12px;
+
+  border:1px solid #ccd3cc;
+
+  border-radius:10px;
+
+  font-size:16px;
+
+  background:white;
+
+}
+
+textarea{
+
+  min-height:90px;
+
+  resize:vertical;
+
+}
+
+label{
+
+  font-weight:600;
+
+  font-size:14px;
+
+}
+
+.hidden{
+
+  display:none;
+
+}
+
+.animal{
+
+  border-left:5px solid #286b3d;
+
+}
+
+.animal h3{
+
+  margin:0 0 7px;
+
+}
+
+.photo-grid{
+
+  display:grid;
+
+  grid-template-columns:repeat(3,1fr);
+
+  gap:8px;
+
+  margin-top:10px;
+
+}
+
+.photo-grid img{
+
+  width:100%;
+
+  aspect-ratio:1;
+
+  object-fit:cover;
+
+  border-radius:10px;
+
+}
+
+.photo-preview{
+
+  width:100%;
+
+  max-height:300px;
+
+  object-fit:cover;
+
+  border-radius:14px;
+
+  margin-top:8px;
+
+}
+
+.action-row{
+
+  display:flex;
+
+  gap:8px;
+
+  flex-wrap:wrap;
+
+  margin-top:10px;
+
+}
+
+.action-row button{
+
+  flex:1;
+
+  min-width:120px;
+
+}
+
+.section-title{
+
+  margin-top:0;
+
+}
+
+.badge{
+
+  display:inline-block;
+
+  padding:5px 9px;
+
+  border-radius:20px;
+
+  background:#e5ece6;
+
+  color:#173d24;
+
+  font-size:13px;
+
+  font-weight:600;
+
+  margin:2px;
+
+}
+
+.empty{
+
+  text-align:center;
+
+  padding:25px 10px;
+
+  color:#687268;
+
+}
+
+#cameraInput{
+
+  display:none;
+
+}
 
 </style>
 
@@ -54,87 +310,175 @@ input,select,textarea{width:100%;padding:13px;margin:6px 0 12px;border:1px solid
 
 <header>
 
-<h1>🐄 Cattle Vision</h1>
+  <h1>🐄 Cattle Vision</h1>
 
-<p>Your herd. Your records. Your operation.</p>
+  <p>Your herd. Your records. Your operation.</p>
 
 </header>
 
 <main>
 
+<!-- DASHBOARD -->
+
 <div class="grid">
 
-<div class="card">
+  <div class="card">
 
-<div class="stat" id="count">0</div>
+    <div class="stat" id="count">0</div>
 
-<div class="small">Cattle</div>
+    <div class="small">Total Cattle</div>
+
+  </div>
+
+  <div class="card">
+
+    <div class="stat" id="calves">0</div>
+
+    <div class="small">Calves</div>
+
+  </div>
+
+  <div class="card">
+
+    <div class="stat" id="cows">0</div>
+
+    <div class="small">Cows</div>
+
+  </div>
+
+  <div class="card">
+
+    <div class="stat" id="bulls">0</div>
+
+    <div class="small">Bulls</div>
+
+  </div>
 
 </div>
 
-<div class="card">
-
-<div class="stat" id="calves">0</div>
-
-<div class="small">Calves This Year</div>
-
-</div>
-
-</div>
+<!-- ADD ANIMAL -->
 
 <div class="card">
 
-<button class="primary" onclick="showAdd()">➕ Add Animal</button>
+  <button class="primary" style="width:100%" onclick="showAdd()">
+
+    ➕ Add Animal
+
+  </button>
 
 </div>
 
 <div id="add" class="card hidden">
 
-<h2>Add Animal</h2>
+  <h2 class="section-title">Add Animal</h2>
 
-<label>Tag Number</label>
+  <label>Tag Number</label>
 
-<input id="tag" placeholder="Example: 937">
+  <input id="tag" placeholder="Example: 937">
 
-<label>Sex</label>
+  <label>Sex / Type</label>
 
-<select id="sex">
+  <select id="sex">
 
-<option>Cow</option>
+    <option>Cow</option>
 
-<option>Bull</option>
+    <option>Bull</option>
 
-<option>Heifer</option>
+    <option>Heifer</option>
 
-<option>Steer</option>
+    <option>Steer</option>
 
-</select>
+    <option>Calf</option>
 
-<label>Location</label>
+  </select>
 
-<input id="location" placeholder="East lot, pasture 3, etc.">
+  <label>Birth Date</label>
 
-<label>Birth Date</label>
+  <input id="birth" type="date">
 
-<input id="birth" type="date">
+  <label>Location</label>
 
-<label>Notes</label>
+  <input id="location" placeholder="East lot, pasture 3, etc.">
 
-<textarea id="notes" placeholder="Anything you want to remember..."></textarea>
+  <label>Dam / Mother</label>
 
-<button class="primary" onclick="addCow()">Save Animal</button>
+  <input id="dam" placeholder="Example: 521">
 
-<button class="secondary" onclick="hideAdd()">Cancel</button>
+  <label>Sire / Father</label>
+
+  <input id="sire" placeholder="Example: 314">
+
+  <label>Notes</label>
+
+  <textarea id="notes"
+
+    placeholder="Anything you want to remember about this animal..."></textarea>
+
+  <div class="action-row">
+
+    <button class="primary" onclick="addAnimal()">Save Animal</button>
+
+    <button class="secondary" onclick="hideAdd()">Cancel</button>
+
+  </div>
 
 </div>
 
+<!-- CAMERA -->
+
 <div class="card">
 
-<h2>🔎 Herd</h2>
+  <h2 class="section-title">📸 Cattle Vision Camera</h2>
 
-<input id="search" placeholder="Search tag number..." oninput="display()">
+  <p class="small">
 
-<div id="herd"></div>
+    Take a picture of an animal and attach it to its record.
+
+    AI analysis can be connected to this later.
+
+  </p>
+
+  <button class="primary" style="width:100%" onclick="openCamera()">
+
+    📷 Take Cow Picture
+
+  </button>
+
+  <input
+
+    id="cameraInput"
+
+    type="file"
+
+    accept="image/*"
+
+    capture="environment"
+
+    onchange="handlePhoto(event)"
+
+  >
+
+  <div id="photoArea"></div>
+
+</div>
+
+<!-- HERD -->
+
+<div class="card">
+
+  <h2 class="section-title">🔎 Herd</h2>
+
+  <input
+
+    id="search"
+
+    placeholder="Search tag number..."
+
+    oninput="display()"
+
+  >
+
+  <div id="herd"></div>
 
 </div>
 
@@ -142,97 +486,691 @@ input,select,textarea{width:100%;padding:13px;margin:6px 0 12px;border:1px solid
 
 <script>
 
-let cattle=JSON.parse(localStorage.getItem("cattleVision")||"[]");
+let cattle =
+
+  JSON.parse(localStorage.getItem("cattleVision") || "[]");
+
+let selectedAnimal = null;
+
+let pendingPhoto = null;
+
+/* SAVE DATA */
 
 function save(){
 
-localStorage.setItem("cattleVision",JSON.stringify(cattle));
+  localStorage.setItem(
 
-display();
+    "cattleVision",
+
+    JSON.stringify(cattle)
+
+  );
+
+  display();
 
 }
 
+/* ADD ANIMAL */
+
 function showAdd(){
 
-document.getElementById("add").classList.remove("hidden");
+  document
 
-window.scrollTo(0,300);
+    .getElementById("add")
+
+    .classList.remove("hidden");
+
+  window.scrollTo({
+
+    top:300,
+
+    behavior:"smooth"
+
+  });
 
 }
 
 function hideAdd(){
 
-document.getElementById("add").classList.add("hidden");
+  document
+
+    .getElementById("add")
+
+    .classList.add("hidden");
 
 }
 
-function addCow(){
+function addAnimal(){
 
-let tag=document.getElementById("tag").value.trim();
+  const tag =
 
-if(!tag){alert("Enter a tag number.");return;}
+    document.getElementById("tag").value.trim();
 
-cattle.push({
+  if(!tag){
 
-tag:tag,
+    alert("Enter a tag number.");
 
-sex:document.getElementById("sex").value,
+    return;
 
-location:document.getElementById("location").value,
+  }
 
-birth:document.getElementById("birth").value,
+  if(
 
-notes:document.getElementById("notes").value
+    cattle.some(
 
-});
+      animal => animal.tag.toLowerCase() === tag.toLowerCase()
 
-document.getElementById("tag").value="";
+    )
 
-document.getElementById("location").value="";
+  ){
 
-document.getElementById("birth").value="";
+    alert("That tag number already exists.");
 
-document.getElementById("notes").value="";
+    return;
 
-hideAdd();
+  }
 
-save();
+  const animal = {
+
+    id:Date.now(),
+
+    tag:tag,
+
+    sex:
+
+      document.getElementById("sex").value,
+
+    birth:
+
+      document.getElementById("birth").value,
+
+    location:
+
+      document.getElementById("location").value,
+
+    dam:
+
+      document.getElementById("dam").value,
+
+    sire:
+
+      document.getElementById("sire").value,
+
+    notes:
+
+      document.getElementById("notes").value,
+
+    photos:[],
+
+    calvings:[],
+
+    breeding:[],
+
+    created:
+
+      new Date().toISOString()
+
+  };
+
+  cattle.push(animal);
+
+  document.getElementById("tag").value="";
+
+  document.getElementById("birth").value="";
+
+  document.getElementById("location").value="";
+
+  document.getElementById("dam").value="";
+
+  document.getElementById("sire").value="";
+
+  document.getElementById("notes").value="";
+
+  hideAdd();
+
+  save();
+
+  alert("Animal saved.");
 
 }
+
+/* CAMERA */
+
+function openCamera(){
+
+  if(!cattle.length){
+
+    alert(
+
+      "Add the animal to the herd first, then attach the picture to its record."
+
+    );
+
+    return;
+
+  }
+
+  selectedAnimal = null;
+
+  const tag =
+
+    prompt(
+
+      "Enter the tag number of the animal you are photographing:"
+
+    );
+
+  if(!tag) return;
+
+  const animal =
+
+    cattle.find(
+
+      a =>
+
+        a.tag.toLowerCase() === tag.trim().toLowerCase()
+
+    );
+
+  if(!animal){
+
+    alert("Animal not found.");
+
+    return;
+
+  }
+
+  selectedAnimal = animal;
+
+  document
+
+    .getElementById("cameraInput")
+
+    .click();
+
+}
+
+/* HANDLE PHOTO */
+
+function handlePhoto(event){
+
+  const file =
+
+    event.target.files[0];
+
+  if(!file || !selectedAnimal){
+
+    return;
+
+  }
+
+  const reader =
+
+    new FileReader();
+
+  reader.onload = function(e){
+
+    pendingPhoto = e.target.result;
+
+    selectedAnimal.photos.push({
+
+      image:
+
+        pendingPhoto,
+
+      date:
+
+        new Date().toLocaleString(),
+
+      analysis:
+
+        "AI analysis not connected yet."
+
+    });
+
+    save();
+
+    display();
+
+    alert(
+
+      "Photo saved to Tag " +
+
+      selectedAnimal.tag
+
+    );
+
+  };
+
+  reader.readAsDataURL(file);
+
+  event.target.value="";
+
+}
+
+/* DELETE ANIMAL */
+
+function deleteAnimal(id){
+
+  const animal =
+
+    cattle.find(a => a.id === id);
+
+  if(!animal) return;
+
+  if(
+
+    !confirm(
+
+      "Delete Tag " +
+
+      animal.tag +
+
+      "? This cannot be undone."
+
+    )
+
+  ){
+
+    return;
+
+  }
+
+  cattle =
+
+    cattle.filter(a => a.id !== id);
+
+  save();
+
+}
+
+/* ADD CALVING */
+
+function addCalving(id){
+
+  const animal =
+
+    cattle.find(a => a.id === id);
+
+  if(!animal) return;
+
+  const date =
+
+    prompt(
+
+      "Calving date (YYYY-MM-DD):"
+
+    );
+
+  if(!date) return;
+
+  const calfTag =
+
+    prompt(
+
+      "Calf tag number:"
+
+    );
+
+  const sex =
+
+    prompt(
+
+      "Calf sex (Heifer/Bull/Steer):"
+
+    );
+
+  animal.calvings.push({
+
+    date:date,
+
+    calfTag:calfTag || "",
+
+    sex:sex || ""
+
+  });
+
+  save();
+
+  alert("Calving record saved.");
+
+}
+
+/* DISPLAY HERD */
 
 function display(){
 
-let q=document.getElementById("search").value.toLowerCase();
+  const q =
 
-let list=cattle.filter(c=>c.tag.toLowerCase().includes(q));
+    document
 
-document.getElementById("count").textContent=cattle.length;
+      .getElementById("search")
 
-document.getElementById("calves").textContent=cattle.filter(c=>c.sex=="Heifer").length;
+      .value
 
-document.getElementById("herd").innerHTML=list.length?
+      .toLowerCase();
 
-list.map((c,i)=>`
+  const list =
 
-<div class="card cow">
+    cattle.filter(
 
-<h3>🐄 Tag ${c.tag}</h3>
+      c =>
 
-<div>${c.sex}</div>
+        c.tag
 
-<div class="small">📍 ${c.location||"No location recorded"}</div>
+          .toLowerCase()
 
-<div class="small">${c.birth?"Born: "+c.birth:""}</div>
+          .includes(q)
 
-${c.notes?`<p>${c.notes}</p>`:""}
+    );
 
-</div>
+  /* DASHBOARD */
 
-`).join("")
+  document.getElementById("count")
 
-:"<p class='small'>No cattle recorded yet.</p>";
+    .textContent =
+
+      cattle.length;
+
+  document.getElementById("cows")
+
+    .textContent =
+
+      cattle.filter(
+
+        c => c.sex === "Cow"
+
+      ).length;
+
+  document.getElementById("bulls")
+
+    .textContent =
+
+      cattle.filter(
+
+        c => c.sex === "Bull"
+
+      ).length;
+
+  document.getElementById("calves")
+
+    .textContent =
+
+      cattle.filter(
+
+        c =>
+
+          c.sex === "Calf" ||
+
+          c.sex === "Heifer"
+
+      ).length;
+
+  /* HERD LIST */
+
+  const herd =
+
+    document.getElementById("herd");
+
+  if(!list.length){
+
+    herd.innerHTML =
+
+      "<div class='empty'>No cattle recorded yet.</div>";
+
+    return;
+
+  }
+
+  herd.innerHTML =
+
+    list.map(c => `
+
+      <div class="card animal">
+
+        <h3>🐄 Tag ${escapeHTML(c.tag)}</h3>
+
+        <div>
+
+          <span class="badge">
+
+            ${escapeHTML(c.sex)}
+
+          </span>
+
+          ${
+
+            c.location
+
+              ?
+
+              `<span class="badge">
+
+                📍 ${escapeHTML(c.location)}
+
+              </span>`
+
+              :
+
+              ""
+
+          }
+
+        </div>
+
+        ${
+
+          c.birth
+
+            ?
+
+            `<div class="small">
+
+              Born: ${escapeHTML(c.birth)}
+
+            </div>`
+
+            :
+
+            ""
+
+        }
+
+        ${
+
+          c.dam
+
+            ?
+
+            `<div class="small">
+
+              Dam: ${escapeHTML(c.dam)}
+
+            </div>`
+
+            :
+
+            ""
+
+        }
+
+        ${
+
+          c.sire
+
+            ?
+
+            `<div class="small">
+
+              Sire: ${escapeHTML(c.sire)}
+
+            </div>`
+
+            :
+
+            ""
+
+        }
+
+        ${
+
+          c.notes
+
+            ?
+
+            `<p>${escapeHTML(c.notes)}</p>`
+
+            :
+
+            ""
+
+        }
+
+        ${
+
+          c.photos && c.photos.length
+
+            ?
+
+            `
+
+            <div class="small">
+
+              📸 ${c.photos.length} photo(s)
+
+            </div>
+
+            <div class="photo-grid">
+
+              ${c.photos.map(p => `
+
+                <img
+
+                  src="${p.image}"
+
+                  alt="Tag ${escapeHTML(c.tag)}"
+
+                >
+
+              `).join("")}
+
+            </div>
+
+            `
+
+            :
+
+            ""
+
+        }
+
+        ${
+
+          c.calvings && c.calvings.length
+
+            ?
+
+            `
+
+            <div class="small" style="margin-top:10px">
+
+              🐮 Calvings: ${c.calvings.length}
+
+            </div>
+
+            `
+
+            :
+
+            ""
+
+        }
+
+        <div class="action-row">
+
+          <button
+
+            class="primary"
+
+            onclick="takePhotoFor(${c.id})">
+
+            📷 Photo
+
+          </button>
+
+          <button
+
+            class="secondary"
+
+            onclick="addCalving(${c.id})">
+
+            🐮 Calving
+
+          </button>
+
+          <button
+
+            class="danger"
+
+            onclick="deleteAnimal(${c.id})">
+
+            Delete
+
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("");
 
 }
+
+/* PHOTO BUTTON ON ANIMAL */
+
+function takePhotoFor(id){
+
+  selectedAnimal =
+
+    cattle.find(
+
+      a => a.id === id
+
+    );
+
+  if(!selectedAnimal){
+
+    return;
+
+  }
+
+  document
+
+    .getElementById("cameraInput")
+
+    .click();
+
+}
+
+/* SECURITY */
+
+function escapeHTML(value){
+
+  return String(value || "")
+
+    .replace(/&/g,"&amp;")
+
+    .replace(/</g,"&lt;")
+
+    .replace(/>/g,"&gt;")
+
+    .replace(/"/g,"&quot;")
+
+    .replace(/'/g,"&#039;");
+
+}
+
+/* START */
 
 display();
 
