@@ -1,17 +1,243 @@
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
 
 <head>
 
-  <title>Cattle Vision</title>
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Cattle Vision</title>
+
+<style>
+
+*{box-sizing:border-box}
+
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f4f6f3;color:#202520}
+
+header{background:#173d24;color:white;padding:28px 20px 22px}
+
+h1{margin:0;font-size:30px}
+
+header p{margin:5px 0 0;opacity:.8}
+
+main{padding:18px;max-width:650px;margin:auto}
+
+.card{background:white;border-radius:18px;padding:18px;margin-bottom:15px;box-shadow:0 2px 8px #00000012}
+
+button{border:0;border-radius:12px;padding:13px 17px;font-size:16px;font-weight:600}
+
+.primary{background:#286b3d;color:white}
+
+.secondary{background:#e5ece6;color:#173d24}
+
+input,select,textarea{width:100%;padding:13px;margin:6px 0 12px;border:1px solid #ccd3cc;border-radius:10px;font-size:16px}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.stat{font-size:28px;font-weight:700}
+
+.small{color:#687268;font-size:14px}
+
+.cow{border-left:5px solid #286b3d}
+
+.cow h3{margin:0 0 7px}
+
+.hidden{display:none}
+
+</style>
 
 </head>
 
 <body>
 
-  <h1>Cattle Vision</h1>
+<header>
 
-  <p>Welcome to Cattle Vision.</p></body>
+<h1>🐄 Cattle Vision</h1>
+
+<p>Your herd. Your records. Your operation.</p>
+
+</header>
+
+<main>
+
+<div class="grid">
+
+<div class="card">
+
+<div class="stat" id="count">0</div>
+
+<div class="small">Cattle</div>
+
+</div>
+
+<div class="card">
+
+<div class="stat" id="calves">0</div>
+
+<div class="small">Calves This Year</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<button class="primary" onclick="showAdd()">➕ Add Animal</button>
+
+</div>
+
+<div id="add" class="card hidden">
+
+<h2>Add Animal</h2>
+
+<label>Tag Number</label>
+
+<input id="tag" placeholder="Example: 937">
+
+<label>Sex</label>
+
+<select id="sex">
+
+<option>Cow</option>
+
+<option>Bull</option>
+
+<option>Heifer</option>
+
+<option>Steer</option>
+
+</select>
+
+<label>Location</label>
+
+<input id="location" placeholder="East lot, pasture 3, etc.">
+
+<label>Birth Date</label>
+
+<input id="birth" type="date">
+
+<label>Notes</label>
+
+<textarea id="notes" placeholder="Anything you want to remember..."></textarea>
+
+<button class="primary" onclick="addCow()">Save Animal</button>
+
+<button class="secondary" onclick="hideAdd()">Cancel</button>
+
+</div>
+
+<div class="card">
+
+<h2>🔎 Herd</h2>
+
+<input id="search" placeholder="Search tag number..." oninput="display()">
+
+<div id="herd"></div>
+
+</div>
+
+</main>
+
+<script>
+
+let cattle=JSON.parse(localStorage.getItem("cattleVision")||"[]");
+
+function save(){
+
+localStorage.setItem("cattleVision",JSON.stringify(cattle));
+
+display();
+
+}
+
+function showAdd(){
+
+document.getElementById("add").classList.remove("hidden");
+
+window.scrollTo(0,300);
+
+}
+
+function hideAdd(){
+
+document.getElementById("add").classList.add("hidden");
+
+}
+
+function addCow(){
+
+let tag=document.getElementById("tag").value.trim();
+
+if(!tag){alert("Enter a tag number.");return;}
+
+cattle.push({
+
+tag:tag,
+
+sex:document.getElementById("sex").value,
+
+location:document.getElementById("location").value,
+
+birth:document.getElementById("birth").value,
+
+notes:document.getElementById("notes").value
+
+});
+
+document.getElementById("tag").value="";
+
+document.getElementById("location").value="";
+
+document.getElementById("birth").value="";
+
+document.getElementById("notes").value="";
+
+hideAdd();
+
+save();
+
+}
+
+function display(){
+
+let q=document.getElementById("search").value.toLowerCase();
+
+let list=cattle.filter(c=>c.tag.toLowerCase().includes(q));
+
+document.getElementById("count").textContent=cattle.length;
+
+document.getElementById("calves").textContent=cattle.filter(c=>c.sex=="Heifer").length;
+
+document.getElementById("herd").innerHTML=list.length?
+
+list.map((c,i)=>`
+
+<div class="card cow">
+
+<h3>🐄 Tag ${c.tag}</h3>
+
+<div>${c.sex}</div>
+
+<div class="small">📍 ${c.location||"No location recorded"}</div>
+
+<div class="small">${c.birth?"Born: "+c.birth:""}</div>
+
+${c.notes?`<p>${c.notes}</p>`:""}
+
+</div>
+
+`).join("")
+
+:"<p class='small'>No cattle recorded yet.</p>";
+
+}
+
+display();
+
+</script>
+
+</body>
 
 </html>
