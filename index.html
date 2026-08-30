@@ -302,6 +302,59 @@ label{
 
 }
 
+
+.photo-thumb{
+  border:0;
+  padding:0;
+  background:transparent;
+  border-radius:10px;
+  overflow:hidden;
+  min-width:0;
+}
+.photo-thumb img{
+  display:block;
+}
+.photo-date{
+  margin-top:8px;
+  color:#687268;
+  font-size:13px;
+}
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:#000000d9;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.modal.hidden{
+  display:none;
+}
+.modal-content{
+  width:min(700px,100%);
+  max-height:95vh;
+  overflow:auto;
+  background:white;
+  border-radius:16px;
+  padding:12px;
+}
+.modal-content img{
+  display:block;
+  width:100%;
+  max-height:75vh;
+  object-fit:contain;
+  border-radius:10px;
+}
+.photo-status{
+  margin-top:10px;
+  text-align:center;
+}
+#cameraInput,#libraryInput{
+  display:none;
+}
+
 </style>
 
 </head>
@@ -428,38 +481,43 @@ label{
 
 <div class="card">
 
-  <h2 class="section-title">📸 Cattle Vision Camera</h2>
+  <h2 class="section-title">📸 Cattle Vision Photos</h2>
 
   <p class="small">
-
-    Take a picture of an animal and attach it to its record.
-
-    AI analysis can be connected to this later.
-
+    Add photos to an animal by taking a new picture or choosing existing pictures.
+    Every photo stays attached to that animal's record.
   </p>
 
-  <button class="primary" style="width:100%" onclick="openCamera()">
+  <div class="action-row">
+    <button class="primary" onclick="chooseAnimalForPhoto('camera')">
+      📷 Take New Photo
+    </button>
+    <button class="secondary" onclick="chooseAnimalForPhoto('library')">
+      🖼 Choose Photos
+    </button>
+  </div>
 
-    📷 Take Cow Picture
+  <input id="cameraInput" type="file" accept="image/*"
+    capture="environment" onchange="handlePhotoFiles(event)">
 
-  </button>
+  <input id="libraryInput" type="file" accept="image/*"
+    multiple onchange="handlePhotoFiles(event)">
 
-  <input
+  <div id="photoStatus" class="photo-status small"></div>
 
-    id="cameraInput"
+</div>
 
-    type="file"
+<!-- PHOTO VIEWER -->
 
-    accept="image/*"
-
-    capture="environment"
-
-    onchange="handlePhoto(event)"
-
-  >
-
-  <div id="photoArea"></div>
-
+<div id="photoModal" class="modal hidden" onclick="closePhotoViewer(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <img id="largePhoto" alt="Animal photo">
+    <div id="largePhotoDate" class="photo-date"></div>
+    <div class="action-row">
+      <button class="danger" onclick="deleteCurrentPhoto()">Delete Photo</button>
+      <button class="secondary" onclick="closePhotoViewer()">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- HERD -->
@@ -486,693 +544,415 @@ label{
 
 <script>
 
-let cattle =
+let cattle = JSON.parse(localStorage.getItem("cattleVision") || "[]");
+let selectedAnimalId = null;
+let currentPhotoId = null;
+let photoDB = null;
+let photoCache = new Map();
 
-  JSON.parse(localStorage.getItem("cattleVision") || "[]");
+const PHOTO_DB_NAME = "cattleVisionPhotos";
+const PHOTO_STORE = "photos";
+const MAX_PHOTO_EDGE = 1600;
+const JPEG_QUALITY = 0.82;
 
-let selectedAnimal = null;
-
-let pendingPhoto = null;
-
-/* SAVE DATA */
-
+/* SAVE ANIMAL DATA */
 function save(){
-
-  localStorage.setItem(
-
-    "cattleVision",
-
-    JSON.stringify(cattle)
-
-  );
-
+  localStorage.setItem("cattleVision", JSON.stringify(cattle));
   display();
+}
 
+/* PHOTO DATABASE */
+function openPhotoDatabase(){
+  return new Promise((resolve,reject)=>{
+    const request = indexedDB.open(PHOTO_DB_NAME,1);
+
+    request.onupgradeneeded = function(){
+      const db = request.result;
+      if(!db.objectStoreNames.contains(PHOTO_STORE)){
+        const store = db.createObjectStore(PHOTO_STORE,{keyPath:"id"});
+        store.createIndex("animalId","animalId",{unique:false});
+      }
+    };
+
+    request.onsuccess = ()=>resolve(request.result);
+    request.onerror = ()=>reject(request.error);
+  });
+}
+
+function photoTransaction(mode){
+  return photoDB.transaction(PHOTO_STORE,mode).objectStore(PHOTO_STORE);
+}
+
+function getAllPhotoRecords(){
+  return new Promise((resolve,reject)=>{
+    const request = photoTransaction("readonly").getAll();
+    request.onsuccess = ()=>resolve(request.result || []);
+    request.onerror = ()=>reject(request.error);
+  });
+}
+
+function putPhotoRecord(photo){
+  return new Promise((resolve,reject)=>{
+    const request = photoTransaction("readwrite").put(photo);
+    request.onsuccess = ()=>resolve(photo);
+    request.onerror = ()=>reject(request.error);
+  });
+}
+
+function removePhotoRecord(id){
+  return new Promise((resolve,reject)=>{
+    const request = photoTransaction("readwrite").delete(id);
+    request.onsuccess = ()=>resolve();
+    request.onerror = ()=>reject(request.error);
+  });
+}
+
+function refreshPhotoCache(records){
+  photoCache = new Map();
+  records.forEach(photo=>{
+    const key = String(photo.animalId);
+    if(!photoCache.has(key)) photoCache.set(key,[]);
+    photoCache.get(key).push(photo);
+  });
+  photoCache.forEach(list=>list.sort((a,b)=>String(b.created).localeCompare(String(a.created))));
+}
+
+async function reloadPhotos(){
+  refreshPhotoCache(await getAllPhotoRecords());
+}
+
+async function migrateExistingPhotos(){
+  let changed = false;
+
+  for(const animal of cattle){
+    if(!Array.isArray(animal.photos) || !animal.photos.length) continue;
+
+    for(const oldPhoto of animal.photos){
+      if(!oldPhoto || !oldPhoto.image) continue;
+      await putPhotoRecord({
+        id:makePhotoId(),
+        animalId:animal.id,
+        image:oldPhoto.image,
+        created:oldPhoto.created || new Date().toISOString(),
+        date:oldPhoto.date || new Date().toLocaleString(),
+        analysis:oldPhoto.analysis || "AI analysis not connected yet."
+      });
+    }
+
+    animal.photos = [];
+    changed = true;
+  }
+
+  if(changed){
+    localStorage.setItem("cattleVision",JSON.stringify(cattle));
+  }
+}
+
+function makePhotoId(){
+  return Date.now() + Math.floor(Math.random()*1000000);
 }
 
 /* ADD ANIMAL */
-
 function showAdd(){
-
-  document
-
-    .getElementById("add")
-
-    .classList.remove("hidden");
-
-  window.scrollTo({
-
-    top:300,
-
-    behavior:"smooth"
-
-  });
-
+  document.getElementById("add").classList.remove("hidden");
+  window.scrollTo({top:300,behavior:"smooth"});
 }
 
 function hideAdd(){
-
-  document
-
-    .getElementById("add")
-
-    .classList.add("hidden");
-
+  document.getElementById("add").classList.add("hidden");
 }
 
 function addAnimal(){
-
-  const tag =
-
-    document.getElementById("tag").value.trim();
+  const tag = document.getElementById("tag").value.trim();
 
   if(!tag){
-
     alert("Enter a tag number.");
-
     return;
-
   }
 
-  if(
-
-    cattle.some(
-
-      animal => animal.tag.toLowerCase() === tag.toLowerCase()
-
-    )
-
-  ){
-
+  if(cattle.some(animal=>animal.tag.toLowerCase()===tag.toLowerCase())){
     alert("That tag number already exists.");
-
     return;
-
   }
 
   const animal = {
-
     id:Date.now(),
-
-    tag:tag,
-
-    sex:
-
-      document.getElementById("sex").value,
-
-    birth:
-
-      document.getElementById("birth").value,
-
-    location:
-
-      document.getElementById("location").value,
-
-    dam:
-
-      document.getElementById("dam").value,
-
-    sire:
-
-      document.getElementById("sire").value,
-
-    notes:
-
-      document.getElementById("notes").value,
-
+    tag,
+    sex:document.getElementById("sex").value,
+    birth:document.getElementById("birth").value,
+    location:document.getElementById("location").value,
+    dam:document.getElementById("dam").value,
+    sire:document.getElementById("sire").value,
+    notes:document.getElementById("notes").value,
     photos:[],
-
     calvings:[],
-
     breeding:[],
-
-    created:
-
-      new Date().toISOString()
-
+    created:new Date().toISOString()
   };
 
   cattle.push(animal);
-
-  document.getElementById("tag").value="";
-
-  document.getElementById("birth").value="";
-
-  document.getElementById("location").value="";
-
-  document.getElementById("dam").value="";
-
-  document.getElementById("sire").value="";
-
-  document.getElementById("notes").value="";
-
+  ["tag","birth","location","dam","sire","notes"].forEach(id=>{
+    document.getElementById(id).value="";
+  });
   hideAdd();
-
   save();
-
   alert("Animal saved.");
-
 }
 
-/* CAMERA */
-
-function openCamera(){
-
+/* PHOTO SELECTION */
+function chooseAnimalForPhoto(source){
   if(!cattle.length){
-
-    alert(
-
-      "Add the animal to the herd first, then attach the picture to its record."
-
-    );
-
+    alert("Add the animal to the herd first, then attach pictures to its record.");
     return;
-
   }
 
-  selectedAnimal = null;
-
-  const tag =
-
-    prompt(
-
-      "Enter the tag number of the animal you are photographing:"
-
-    );
-
+  const tag = prompt("Enter the tag number for the animal:");
   if(!tag) return;
 
-  const animal =
-
-    cattle.find(
-
-      a =>
-
-        a.tag.toLowerCase() === tag.trim().toLowerCase()
-
-    );
-
+  const animal = cattle.find(a=>a.tag.toLowerCase()===tag.trim().toLowerCase());
   if(!animal){
-
     alert("Animal not found.");
-
     return;
-
   }
 
-  selectedAnimal = animal;
-
-  document
-
-    .getElementById("cameraInput")
-
-    .click();
-
+  openPhotoPicker(animal.id,source);
 }
 
-/* HANDLE PHOTO */
+function openPhotoPicker(animalId,source){
+  selectedAnimalId = animalId;
+  const input = document.getElementById(source==="library" ? "libraryInput" : "cameraInput");
+  input.click();
+}
 
-function handlePhoto(event){
-
-  const file =
-
-    event.target.files[0];
-
-  if(!file || !selectedAnimal){
-
-    return;
-
-  }
-
-  const reader =
-
-    new FileReader();
-
-  reader.onload = function(e){
-
-    pendingPhoto = e.target.result;
-
-    selectedAnimal.photos.push({
-
-      image:
-
-        pendingPhoto,
-
-      date:
-
-        new Date().toLocaleString(),
-
-      analysis:
-
-        "AI analysis not connected yet."
-
-    });
-
-    save();
-
-    display();
-
-    alert(
-
-      "Photo saved to Tag " +
-
-      selectedAnimal.tag
-
-    );
-
-  };
-
-  reader.readAsDataURL(file);
-
+async function handlePhotoFiles(event){
+  const files = Array.from(event.target.files || []);
+  const animal = cattle.find(a=>String(a.id)===String(selectedAnimalId));
   event.target.value="";
 
+  if(!files.length || !animal) return;
+  if(!photoDB){
+    alert("Photo storage is not available in this browser.");
+    return;
+  }
+
+  setPhotoStatus("Saving " + files.length + " photo" + (files.length===1 ? "…" : "s…"));
+
+  try{
+    for(const file of files){
+      if(!file.type.startsWith("image/")) continue;
+      const image = await resizePhoto(file);
+      await putPhotoRecord({
+        id:makePhotoId(),
+        animalId:animal.id,
+        image,
+        created:new Date().toISOString(),
+        date:new Date().toLocaleString(),
+        analysis:"AI analysis not connected yet."
+      });
+    }
+
+    await reloadPhotos();
+    display();
+    setPhotoStatus("");
+    alert(files.length + " photo" + (files.length===1 ? "" : "s") + " saved to Tag " + animal.tag + ".");
+  }catch(error){
+    console.error(error);
+    setPhotoStatus("");
+    alert("The photo could not be saved. Please try again.");
+  }
+}
+
+function resizePhoto(file){
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = function(){
+      let width = image.naturalWidth;
+      let height = image.naturalHeight;
+      const scale = Math.min(1,MAX_PHOTO_EDGE/Math.max(width,height));
+      width = Math.max(1,Math.round(width*scale));
+      height = Math.max(1,Math.round(height*scale));
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      context.drawImage(image,0,0,width,height);
+      URL.revokeObjectURL(url);
+
+      try{
+        resolve(canvas.toDataURL("image/jpeg",JPEG_QUALITY));
+      }catch(error){
+        reject(error);
+      }
+    };
+
+    image.onerror = function(){
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not read image"));
+    };
+
+    image.src = url;
+  });
+}
+
+function setPhotoStatus(message){
+  document.getElementById("photoStatus").textContent = message;
+}
+
+/* PHOTO VIEWER */
+function viewPhoto(id){
+  const photo = Array.from(photoCache.values()).flat().find(p=>String(p.id)===String(id));
+  if(!photo) return;
+
+  currentPhotoId = photo.id;
+  document.getElementById("largePhoto").src = photo.image;
+  document.getElementById("largePhotoDate").textContent = "Added " + photo.date;
+  document.getElementById("photoModal").classList.remove("hidden");
+}
+
+function closePhotoViewer(event){
+  if(event && event.target!==document.getElementById("photoModal")) return;
+  currentPhotoId = null;
+  document.getElementById("largePhoto").src = "";
+  document.getElementById("photoModal").classList.add("hidden");
+}
+
+async function deleteCurrentPhoto(){
+  if(currentPhotoId===null || !confirm("Delete this photo? This cannot be undone.")) return;
+
+  try{
+    await removePhotoRecord(currentPhotoId);
+    await reloadPhotos();
+    closePhotoViewer();
+    display();
+  }catch(error){
+    console.error(error);
+    alert("The photo could not be deleted.");
+  }
 }
 
 /* DELETE ANIMAL */
-
-function deleteAnimal(id){
-
-  const animal =
-
-    cattle.find(a => a.id === id);
-
+async function deleteAnimal(id){
+  const animal = cattle.find(a=>a.id===id);
   if(!animal) return;
 
-  if(
+  if(!confirm("Delete Tag " + animal.tag + " and all of its photos? This cannot be undone.")) return;
 
-    !confirm(
-
-      "Delete Tag " +
-
-      animal.tag +
-
-      "? This cannot be undone."
-
-    )
-
-  ){
-
-    return;
-
+  try{
+    const photos = photoCache.get(String(id)) || [];
+    for(const photo of photos){
+      await removePhotoRecord(photo.id);
+    }
+    cattle = cattle.filter(a=>a.id!==id);
+    await reloadPhotos();
+    save();
+  }catch(error){
+    console.error(error);
+    alert("The animal could not be deleted.");
   }
-
-  cattle =
-
-    cattle.filter(a => a.id !== id);
-
-  save();
-
 }
 
 /* ADD CALVING */
-
 function addCalving(id){
-
-  const animal =
-
-    cattle.find(a => a.id === id);
-
+  const animal = cattle.find(a=>a.id===id);
   if(!animal) return;
 
-  const date =
-
-    prompt(
-
-      "Calving date (YYYY-MM-DD):"
-
-    );
-
+  const date = prompt("Calving date (YYYY-MM-DD):");
   if(!date) return;
+  const calfTag = prompt("Calf tag number:");
+  const sex = prompt("Calf sex (Heifer/Bull/Steer):");
 
-  const calfTag =
-
-    prompt(
-
-      "Calf tag number:"
-
-    );
-
-  const sex =
-
-    prompt(
-
-      "Calf sex (Heifer/Bull/Steer):"
-
-    );
-
-  animal.calvings.push({
-
-    date:date,
-
-    calfTag:calfTag || "",
-
-    sex:sex || ""
-
-  });
-
+  if(!Array.isArray(animal.calvings)) animal.calvings=[];
+  animal.calvings.push({date,calfTag:calfTag||"",sex:sex||""});
   save();
-
   alert("Calving record saved.");
-
 }
 
 /* DISPLAY HERD */
-
 function display(){
+  const search = document.getElementById("search");
+  const q = search ? search.value.toLowerCase() : "";
+  const list = cattle.filter(c=>c.tag.toLowerCase().includes(q));
 
-  const q =
+  document.getElementById("count").textContent=cattle.length;
+  document.getElementById("cows").textContent=cattle.filter(c=>c.sex==="Cow").length;
+  document.getElementById("bulls").textContent=cattle.filter(c=>c.sex==="Bull").length;
+  document.getElementById("calves").textContent=cattle.filter(c=>c.sex==="Calf"||c.sex==="Heifer").length;
 
-    document
-
-      .getElementById("search")
-
-      .value
-
-      .toLowerCase();
-
-  const list =
-
-    cattle.filter(
-
-      c =>
-
-        c.tag
-
-          .toLowerCase()
-
-          .includes(q)
-
-    );
-
-  /* DASHBOARD */
-
-  document.getElementById("count")
-
-    .textContent =
-
-      cattle.length;
-
-  document.getElementById("cows")
-
-    .textContent =
-
-      cattle.filter(
-
-        c => c.sex === "Cow"
-
-      ).length;
-
-  document.getElementById("bulls")
-
-    .textContent =
-
-      cattle.filter(
-
-        c => c.sex === "Bull"
-
-      ).length;
-
-  document.getElementById("calves")
-
-    .textContent =
-
-      cattle.filter(
-
-        c =>
-
-          c.sex === "Calf" ||
-
-          c.sex === "Heifer"
-
-      ).length;
-
-  /* HERD LIST */
-
-  const herd =
-
-    document.getElementById("herd");
-
+  const herd = document.getElementById("herd");
   if(!list.length){
-
-    herd.innerHTML =
-
-      "<div class='empty'>No cattle recorded yet.</div>";
-
+    herd.innerHTML="<div class='empty'>No cattle recorded yet.</div>";
     return;
-
   }
 
-  herd.innerHTML =
+  herd.innerHTML=list.map(c=>{
+    const photos = photoCache.get(String(c.id)) || [];
+    const calvings = Array.isArray(c.calvings) ? c.calvings : [];
 
-    list.map(c => `
-
+    return `
       <div class="card animal">
-
         <h3>🐄 Tag ${escapeHTML(c.tag)}</h3>
-
         <div>
-
-          <span class="badge">
-
-            ${escapeHTML(c.sex)}
-
-          </span>
-
-          ${
-
-            c.location
-
-              ?
-
-              `<span class="badge">
-
-                📍 ${escapeHTML(c.location)}
-
-              </span>`
-
-              :
-
-              ""
-
-          }
-
+          <span class="badge">${escapeHTML(c.sex)}</span>
+          ${c.location ? `<span class="badge">📍 ${escapeHTML(c.location)}</span>` : ""}
         </div>
-
-        ${
-
-          c.birth
-
-            ?
-
-            `<div class="small">
-
-              Born: ${escapeHTML(c.birth)}
-
-            </div>`
-
-            :
-
-            ""
-
-        }
-
-        ${
-
-          c.dam
-
-            ?
-
-            `<div class="small">
-
-              Dam: ${escapeHTML(c.dam)}
-
-            </div>`
-
-            :
-
-            ""
-
-        }
-
-        ${
-
-          c.sire
-
-            ?
-
-            `<div class="small">
-
-              Sire: ${escapeHTML(c.sire)}
-
-            </div>`
-
-            :
-
-            ""
-
-        }
-
-        ${
-
-          c.notes
-
-            ?
-
-            `<p>${escapeHTML(c.notes)}</p>`
-
-            :
-
-            ""
-
-        }
-
-        ${
-
-          c.photos && c.photos.length
-
-            ?
-
-            `
-
-            <div class="small">
-
-              📸 ${c.photos.length} photo(s)
-
-            </div>
-
-            <div class="photo-grid">
-
-              ${c.photos.map(p => `
-
-                <img
-
-                  src="${p.image}"
-
-                  alt="Tag ${escapeHTML(c.tag)}"
-
-                >
-
-              `).join("")}
-
-            </div>
-
-            `
-
-            :
-
-            ""
-
-        }
-
-        ${
-
-          c.calvings && c.calvings.length
-
-            ?
-
-            `
-
-            <div class="small" style="margin-top:10px">
-
-              🐮 Calvings: ${c.calvings.length}
-
-            </div>
-
-            `
-
-            :
-
-            ""
-
-        }
+        ${c.birth ? `<div class="small">Born: ${escapeHTML(c.birth)}</div>` : ""}
+        ${c.dam ? `<div class="small">Dam: ${escapeHTML(c.dam)}</div>` : ""}
+        ${c.sire ? `<div class="small">Sire: ${escapeHTML(c.sire)}</div>` : ""}
+        ${c.notes ? `<p>${escapeHTML(c.notes)}</p>` : ""}
+
+        ${photos.length ? `
+          <div class="small">📸 ${photos.length} photo(s)</div>
+          <div class="photo-grid">
+            ${photos.map(photo=>`
+              <button class="photo-thumb" onclick="viewPhoto('${photo.id}')" aria-label="View photo">
+                <img src="${photo.image}" alt="Tag ${escapeHTML(c.tag)}">
+              </button>
+            `).join("")}
+          </div>
+        ` : `<div class="small" style="margin-top:10px">No photos yet.</div>`}
+
+        ${calvings.length ? `<div class="small" style="margin-top:10px">🐮 Calvings: ${calvings.length}</div>` : ""}
 
         <div class="action-row">
-
-          <button
-
-            class="primary"
-
-            onclick="takePhotoFor(${c.id})">
-
-            📷 Photo
-
-          </button>
-
-          <button
-
-            class="secondary"
-
-            onclick="addCalving(${c.id})">
-
-            🐮 Calving
-
-          </button>
-
-          <button
-
-            class="danger"
-
-            onclick="deleteAnimal(${c.id})">
-
-            Delete
-
-          </button>
-
+          <button class="primary" onclick="openPhotoPicker(${c.id},'camera')">📷 Take Photo</button>
+          <button class="secondary" onclick="openPhotoPicker(${c.id},'library')">🖼 Choose Photos</button>
+          <button class="secondary" onclick="addCalving(${c.id})">🐮 Calving</button>
+          <button class="danger" onclick="deleteAnimal(${c.id})">Delete</button>
         </div>
-
       </div>
-
-    `).join("");
-
-}
-
-/* PHOTO BUTTON ON ANIMAL */
-
-function takePhotoFor(id){
-
-  selectedAnimal =
-
-    cattle.find(
-
-      a => a.id === id
-
-    );
-
-  if(!selectedAnimal){
-
-    return;
-
-  }
-
-  document
-
-    .getElementById("cameraInput")
-
-    .click();
-
+    `;
+  }).join("");
 }
 
 /* SECURITY */
-
 function escapeHTML(value){
-
-  return String(value || "")
-
+  return String(value||"")
     .replace(/&/g,"&amp;")
-
     .replace(/</g,"&lt;")
-
     .replace(/>/g,"&gt;")
-
     .replace(/"/g,"&quot;")
-
     .replace(/'/g,"&#039;");
-
 }
 
 /* START */
+async function start(){
+  display();
 
-display();
+  try{
+    photoDB = await openPhotoDatabase();
+    await migrateExistingPhotos();
+    await reloadPhotos();
+    display();
+  }catch(error){
+    console.error(error);
+    setPhotoStatus("Photo storage is unavailable in this browser.");
+  }
+}
+
+start();
 
 </script>
 
