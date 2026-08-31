@@ -1,0 +1,5 @@
+(function(){
+function addMobileButton(){if(document.getElementById('cloudMobileBtn'))return;const b=document.createElement('button');b.id='cloudMobileBtn';b.type='button';b.textContent='☁ Cloud';b.onclick=()=>window.openCloud&&window.openCloud();b.style.cssText='position:fixed;right:12px;top:74px;z-index:1200;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.92);color:#17452b;border-radius:999px;padding:8px 12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.14)';document.body.appendChild(b);}
+function loadCloud(){const s=document.createElement('script');s.src='cloud-sync.js?v=1';s.onload=()=>setTimeout(addMobileButton,50);document.body.appendChild(s)}
+if(window.supabase?.createClient)return loadCloud();const lib=document.createElement('script');lib.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';lib.onload=loadCloud;lib.onerror=()=>console.error('Cattle Vision cloud library failed to load');document.body.appendChild(lib);
+})();
