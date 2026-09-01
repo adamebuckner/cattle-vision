@@ -1,0 +1,17 @@
+(function(){
+if(window.__cvGuardianDogCloudInstalled)return;window.__cvGuardianDogCloudInstalled=true;
+const URL='https://rtyiqggxruwejqqyqtmv.supabase.co';
+const KEY='sb_publishable_BxkgX1XJz8o_PsTb_LcVDQ_7DR6oHOk';
+const FARM_KEY='cv2-cloud-farm-id',DOG='Livestock Guardian Dog';
+let client=null,timer=null,wrappedSync=null,wrappedPull=null;
+function herd(){return typeof cattle!=='undefined'&&Array.isArray(cattle)?cattle:[]}
+function dogs(){return herd().filter(a=>a.sex===DOG)}
+async function ready(){if(!client&&window.supabase?.createClient)client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});if(!client)return false;const {data}=await client.auth.getSession();return !!data.session?.user}
+async function push(){if(!(await ready()))return;const farmId=localStorage.getItem(FARM_KEY);if(!farmId)return;const rows=dogs().map(a=>({farm_id:farmId,animal_legacy_id:String(a.id),canine_sex:a.canineSex||'Unknown',working_role:a.workingRole||null,guardian_status:a.guardianStatus||'Working',microchip:a.microchip||null,altered_status:a.alteredStatus||'Unknown',updated_at:new Date().toISOString()}));if(!rows.length)return;const {error}=await client.from('guardian_dog_profiles').upsert(rows,{onConflict:'farm_id,animal_legacy_id'});if(error)console.warn('Guardian dog cloud details will retry later',error)}
+async function pull(){if(!(await ready()))return;const farmId=localStorage.getItem(FARM_KEY);if(!farmId)return;const {data,error}=await client.from('guardian_dog_profiles').select('animal_legacy_id,canine_sex,working_role,guardian_status,microchip,altered_status').eq('farm_id',farmId).range(0,9999);if(error){console.warn('Guardian dog details could not be restored yet',error);return}const map=new Map((data||[]).map(x=>[String(x.animal_legacy_id),x]));let changed=false;for(const a of dogs()){const x=map.get(String(a.id));if(!x)continue;const next={canineSex:x.canine_sex||'Unknown',workingRole:x.working_role||'',guardianStatus:x.guardian_status||'Working',microchip:x.microchip||'',alteredStatus:x.altered_status||'Unknown'};for(const [k,v] of Object.entries(next)){if(a[k]!==v){a[k]=v;changed=true}}}if(changed){try{localStorage.setItem('cv2-cattle',JSON.stringify(herd()));if(typeof render==='function')render()}catch(e){console.warn('Guardian dog cloud restore could not be saved locally',e)}}}
+function schedule(delay=4500){clearTimeout(timer);timer=setTimeout(push,delay)}
+window.addEventListener('cv-dog-changed',()=>schedule());
+function installWrappers(){const s=window.cloudSyncNow;if(typeof s==='function'&&s!==wrappedSync&&!s.__cvDogCloud){const w=async function(){const out=await s.apply(this,arguments);try{await push()}catch{}return out};w.__cvDogCloud=true;wrappedSync=w;window.cloudSyncNow=w}const p=window.cloudPullNow;if(typeof p==='function'&&p!==wrappedPull&&!p.__cvDogCloud){const w=async function(){const out=await p.apply(this,arguments);try{await pull()}catch{}return out};w.__cvDogCloud=true;wrappedPull=w;window.cloudPullNow=w}}
+function start(){if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(ok=>{if(ok)setTimeout(pull,1800)});installWrappers();setInterval(installWrappers,900)}
+start();
+})();
