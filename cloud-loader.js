@@ -6,7 +6,7 @@ function loadSecurity(){loadScript('cvAccountSecurityScript','account-security.j
 function loadAutoHook(){loadScript('cvCloudAutoHook','cloud-auto-hook.js?v=2')}
 function loadRecovery(){loadScript('cvPasswordResetScript','password-reset.js?v=3')}
 function loadIntegrity(){loadScript('cvCloudIntegrityScript','cloud-integrity.js?v=2')}
-function loadTombstones(){loadScript('cvCloudTombstonesScript','cloud-tombstones.js?v=1')}
+function loadTombstones(){loadScript('cvCloudTombstonesScript','cloud-tombstones.js?v=2')}
 function loadCloud(){installSafariStorageFix();const s=document.createElement('script');s.src='cloud-sync.js?v=11';s.onload=()=>{setTimeout(addMobileButton,50);loadSecurity();loadAutoHook();loadRecovery();loadIntegrity();loadTombstones()};document.body.appendChild(s)}
 if(window.supabase?.createClient)return loadCloud();const lib=document.createElement('script');lib.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';lib.onload=loadCloud;lib.onerror=()=>console.error('Cattle Vision cloud library failed to load');document.body.appendChild(lib);
 })();
