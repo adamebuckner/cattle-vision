@@ -30,10 +30,10 @@
   herd.insertAdjacentElement('beforebegin',summary);
 
   function update(){
-    const count=(window.cattle&&Array.isArray(window.cattle))?window.cattle.length:(document.getElementById('totalN')?.textContent||'0');
+    const count=(typeof cattle!=='undefined'&&Array.isArray(cattle))?cattle.length:Number(document.getElementById('totalN')?.textContent||0);
     herd.style.display=collapsed?'none':'';
     summary.style.display=collapsed?'block':'none';
-    summary.textContent=collapsed?`${count} animal${String(count)==='1'?'':'s'} hidden — tap Show Herd to view pictures and records.`:'';
+    summary.textContent=collapsed?`${count} animal${Number(count)===1?'':'s'} hidden — tap Show Herd to view pictures and records.`:'';
     toggle.textContent=collapsed?'Show Herd':'Hide Herd';
     toggle.setAttribute('aria-expanded',String(!collapsed));
   }
