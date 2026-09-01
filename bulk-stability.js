@@ -15,7 +15,7 @@ let idleTimer=null;
 
 function nativeLocalSet(key,value){nativeSetItem.call(localStorage,key,value)}
 function markDirty(){try{nativeLocalSet(DIRTY_KEY,'1')}catch(e){console.warn('Could not mark field work for cloud sync',e)}}
-function active(){return window.__cvBulkImportActive===true}
+function active(){return window.__cvBulkImportActive===true||window.__cvPastureCaptureActive===true}
 function fieldUntil(){const n=Number(localStorage.getItem(FIELD_UNTIL_KEY)||0);return Number.isFinite(n)?n:0}
 function inCooldown(){return Date.now()<fieldUntil()}
 function touchFieldWork(){
@@ -38,7 +38,7 @@ function scheduleIdleCloud(){
 }
 
 // Give cattle entry priority over an already-running Supabase backup. If a cloud
-// request tries to start while the sorter is open, make it look like a temporary
+// request tries to start while the sorter/camera is open, make it look like a temporary
 // network interruption so the cloud job exits and can resume later.
 if(!window.__cvFieldFetchGuardInstalled){
   window.__cvFieldFetchGuardInstalled=true;
@@ -64,11 +64,11 @@ window.addEventListener('cv-local-change',e=>{
 },true);
 
 // Save every cow immediately to local storage, but skip expensive herd redraws and
-// cloud wakeups while the batch is open.
+// cloud wakeups while a bulk sorter batch is open.
 if(typeof window.save==='function'&&!window.save.__cvBulkLightSave){
   const normalSave=window.save;
   const guardedSave=function(){
-    if(!active())return normalSave.apply(this,arguments);
+    if(!active()||window.__cvPastureCaptureActive===true)return normalSave.apply(this,arguments);
     try{
       nativeLocalSet('cv2-cattle',JSON.stringify(cattle));
       markDirty();
