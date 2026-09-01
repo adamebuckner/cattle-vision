@@ -1,0 +1,36 @@
+(function(){
+if(window.__cvAiCattleInstalled)return;window.__cvAiCattleInstalled=true;
+const el=id=>document.getElementById(id);
+const safe=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function dashedTag(a){const t=String(a?.tag||'').trim();return t!=='N-T'&&/[A-Za-z0-9]+\s*-\s*[A-Za-z0-9]+/.test(t)}
+function female(a){return a&&['Cow','Heifer'].includes(a.sex)}
+function aiBred(a){return female(a)&&(a.breeding||[]).some(x=>String(x.method||'').trim().toLowerCase()==='ai')}
+function aiOrigin(a){return dashedTag(a)}
+function aiOnAiFemale(a){return female(a)&&dashedTag(a)&&a.doubleTagged===true}
+window.cvIsAiOrigin=aiOrigin;window.cvIsAiBred=aiBred;window.cvIsAiOnAiFemale=aiOnAiFemale;
+function fieldHtml(id){return `<label class="ai-double-field"><input id="${id}" type="checkbox"><span><b>Double Tagged</b><small>Use this when a dashed-tag cow/heifer is an AI-origin calf out of an AI parent.</small></span></label>`}
+function injectFields(){
+  if(!el('aDoubleTagged')){const tag=el('aTag');const host=tag?.parentElement;if(host)host.insertAdjacentHTML('beforeend',fieldHtml('aDoubleTagged'))}
+  if(!el('rDoubleTagged')){const tag=el('rTag');const host=tag?.parentElement;if(host)host.insertAdjacentHTML('beforeend',fieldHtml('rDoubleTagged'))}
+}
+function findSection(title){return [...document.querySelectorAll('.farm-menu-section')].find(s=>s.querySelector('h3')?.textContent.trim()===title)}
+function ensureMenuButton(){if(el('cvAiCattleMenuBtn'))return;const section=findSection('Records')||findSection('Animals');const grid=section?.querySelector('.farm-menu-grid');if(!grid)return;const b=document.createElement('button');b.id='cvAiCattleMenuBtn';b.type='button';b.className='softbtn';b.textContent='AI Cattle';b.onclick=()=>{if(typeof window.closeFarmMenu==='function')window.closeFarmMenu();openAiCattle()};grid.appendChild(b)}
+function injectModal(){if(el('cvAiCattleModal'))return;const m=document.createElement('div');m.id='cvAiCattleModal';m.className='modal hidden';m.innerHTML=`<div class="sheet ai-sheet"><div class="row"><div><h2>AI Cattle</h2><div class="muted">Smart groups from breeding records, dashed tags, and the Double Tagged marker.</div></div><button class="softbtn" id="cvAiClose">Close</button></div><div id="cvAiBody"></div></div>`;document.body.appendChild(m);el('cvAiClose').onclick=()=>m.classList.add('hidden')}
+function animalRow(a,label){const sire=(a.breeding||[]).slice().reverse().find(x=>String(x.method||'').toLowerCase()==='ai')?.sire||'';return `<button class="ai-animal-row" type="button" onclick="closeAiCattle();openRecord('${String(a.id).replace(/'/g,"\\'")}')"><span><b>Tag ${safe(a.tag||'N-T')}</b><small>${safe(a.sex||'')}${a.location?` • ${safe(a.location)}`:''}${sire?` • AI sire ${safe(sire)}`:''}</small></span><span class="ai-row-badge">${safe(label)}</span></button>`}
+function section(title,items,label,empty){return `<div class="ai-group"><div class="ai-group-head"><div><h3>${title}</h3><div class="muted">${empty}</div></div><b>${items.length}</b></div><div class="ai-list">${items.length?items.map(a=>animalRow(a,label)).join(''):'<div class="empty">None yet.</div>'}</div></div>`}
+function renderAi(){const body=el('cvAiBody');if(!body)return;const herd=(typeof cattle!=='undefined'&&Array.isArray(cattle))?cattle:[];const bred=herd.filter(aiBred).sort(sortTag);const origin=herd.filter(aiOrigin).sort(sortTag);const aiAi=herd.filter(aiOnAiFemale).sort(sortTag);body.innerHTML=`<div class="ai-summary"><div><span>AI Bred</span><b>${bred.length}</b></div><div><span>AI Origin</span><b>${origin.length}</b></div><div><span>AI-on-AI Females</span><b>${aiAi.length}</b></div></div><div class="notice ai-explain"><b>How Cattle Vision reads your system</b><br><b>Breeding Method = AI</b> means the cow/heifer was AI'd. A <b>dashed tag</b> means the animal itself is AI-origin. A <b>dashed tag + Double Tagged</b> on a cow/heifer means she is an AI-origin calf out of an AI parent.</div>${section("AI'd Cows / Heifers",bred,'AI Bred','Taken from the animal’s breeding history, not from its tag number.')}${section('AI-Origin Animals',origin,'AI Origin','Any permanent tag containing a dash, such as 3-11.')}${section('AI-on-AI Cows / Heifers',aiAi,'AI × AI','Dashed-tag females that are also marked Double Tagged.')}`}
+function sortTag(a,b){return String(a.tag||'').localeCompare(String(b.tag||''),undefined,{numeric:true})}
+function openAiCattle(){injectModal();renderAi();el('cvAiCattleModal').classList.remove('hidden')}
+function closeAiCattle(){el('cvAiCattleModal')?.classList.add('hidden')}
+window.openAiCattle=openAiCattle;window.closeAiCattle=closeAiCattle;
+function wrap(){
+  injectFields();ensureMenuButton();injectModal();
+  if(typeof window.norm==='function'&&!window.norm.__cvAi){const old=window.norm;window.norm=function(a){const out=old.apply(this,arguments);out.doubleTagged=out.doubleTagged===true;return out};window.norm.__cvAi=true}
+  if(typeof window.openAdd==='function'&&!window.openAdd.__cvAi){const old=window.openAdd;window.openAdd=function(){const r=old.apply(this,arguments);injectFields();if(el('aDoubleTagged'))el('aDoubleTagged').checked=false;return r};window.openAdd.__cvAi=true}
+  if(typeof window.openAddWithMedia==='function'&&!window.openAddWithMedia.__cvAi){const old=window.openAddWithMedia;window.openAddWithMedia=function(){const r=old.apply(this,arguments);injectFields();if(el('aDoubleTagged'))el('aDoubleTagged').checked=false;return r};window.openAddWithMedia.__cvAi=true}
+  if(typeof window.saveNewAnimal==='function'&&!window.saveNewAnimal.__cvAi){const old=window.saveNewAnimal;window.saveNewAnimal=async function(){const checked=!!el('aDoubleTagged')?.checked;const before=new Set((typeof cattle!=='undefined'?cattle:[]).map(a=>String(a.id)));const r=await old.apply(this,arguments);const added=(typeof cattle!=='undefined'?cattle:[]).find(a=>!before.has(String(a.id)));if(added){added.doubleTagged=checked;if(typeof save==='function')save();window.dispatchEvent(new Event('cv-ai-changed'))}return r};window.saveNewAnimal.__cvAi=true}
+  if(typeof window.openRecord==='function'&&!window.openRecord.__cvAi){const old=window.openRecord;window.openRecord=async function(id){const r=await old.apply(this,arguments);injectFields();const a=(typeof cattle!=='undefined'?cattle:[]).find(x=>String(x.id)===String(id));if(el('rDoubleTagged'))el('rDoubleTagged').checked=!!a?.doubleTagged;return r};window.openRecord.__cvAi=true}
+  if(typeof window.saveRecord==='function'&&!window.saveRecord.__cvAi){const old=window.saveRecord;window.saveRecord=function(){const a=(typeof cattle!=='undefined'?cattle:[]).find(x=>String(x.id)===String(typeof currentId!=='undefined'?currentId:''));const newTag=el('rTag')?.value.trim()||'';const duplicate=newTag&&newTag!=='N-T'&&(typeof cattle!=='undefined'?cattle:[]).some(x=>String(x.id)!==String(a?.id)&&x.tag&&x.tag!=='N-T'&&String(x.tag).toLowerCase()===newTag.toLowerCase());if(a&&!duplicate)a.doubleTagged=!!el('rDoubleTagged')?.checked;const r=old.apply(this,arguments);if(a&&!duplicate)window.dispatchEvent(new Event('cv-ai-changed'));return r};window.saveRecord.__cvAi=true}
+}
+wrap();setInterval(wrap,800);
+})();
