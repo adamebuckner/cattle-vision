@@ -18,6 +18,6 @@ function installSafariStorageFix(){
 }
 function loadSecurity(){if(document.getElementById('cvAccountSecurityScript'))return;const a=document.createElement('script');a.id='cvAccountSecurityScript';a.src='account-security.js?v=1';document.body.appendChild(a)}
 function loadAutoHook(){if(document.getElementById('cvCloudAutoHook'))return;const h=document.createElement('script');h.id='cvCloudAutoHook';h.src='cloud-auto-hook.js?v=1';document.body.appendChild(h)}
-function loadCloud(){installSafariStorageFix();const s=document.createElement('script');s.src='cloud-sync.js?v=6';s.onload=()=>{setTimeout(addMobileButton,50);loadSecurity();loadAutoHook()};document.body.appendChild(s)}
+function loadCloud(){installSafariStorageFix();const s=document.createElement('script');s.src='cloud-sync.js?v=7';s.onload=()=>{setTimeout(addMobileButton,50);loadSecurity();loadAutoHook()};document.body.appendChild(s)}
 if(window.supabase?.createClient)return loadCloud();const lib=document.createElement('script');lib.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';lib.onload=loadCloud;lib.onerror=()=>console.error('Cattle Vision cloud library failed to load');document.body.appendChild(lib);
 })();
