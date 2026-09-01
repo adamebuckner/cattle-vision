@@ -1,0 +1,53 @@
+name: Cattle Vision QA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in *.js; do
+            echo "Checking $file"
+            node --check "$file"
+          done
+
+      - name: Check local scripts and styles referenced by index.html
+        shell: python
+        run: |
+          import pathlib, re, sys
+          root = pathlib.Path('.')
+          html = (root / 'index.html').read_text(encoding='utf-8')
+          refs = re.findall(r'(?:src|href)="([^"?#]+\.(?:js|css))', html)
+          missing = [ref for ref in refs if not (root / ref).is_file()]
+          if missing:
+              print('Missing local files referenced by index.html:')
+              for ref in missing:
+                  print(' -', ref)
+              sys.exit(1)
+          print(f'Checked {len(refs)} local script/style references; all exist.')
+
+      - name: Check duplicate static HTML ids
+        shell: python
+        run: |
+          import collections, pathlib, re, sys
+          html = pathlib.Path('index.html').read_text(encoding='utf-8')
+          ids = re.findall(r'\bid="([^"]+)"', html)
+          dupes = sorted(k for k, v in collections.Counter(ids).items() if v > 1)
+          if dupes:
+              print('Duplicate static HTML ids:', ', '.join(dupes))
+              sys.exit(1)
+          print(f'Checked {len(ids)} static HTML ids; no duplicates found.')
