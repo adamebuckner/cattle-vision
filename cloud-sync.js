@@ -6,7 +6,7 @@ const FARM_KEY='cv2-cloud-farm-id',LAST_KEY='cv2-cloud-last-sync',HASH_KEY='cv2-
 const WATCH_KEYS=new Set(['cv2-cattle','cv2-pastures','cv2-meds','cv2-herd-work-events']);
 let client=null,user=null,farm=null,syncing=false,pulling=false,autoTimer=null,queued=false,suspendAuto=false;
 const el=id=>document.getElementById(id);
-const safe=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const safe=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
 const localAnimals=()=>typeof cattle!=='undefined'&&Array.isArray(cattle)?cattle:[];
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function lastText(){const v=localStorage.getItem(LAST_KEY);if(!v)return'Not synced yet';const d=new Date(v);return Number.isNaN(d.getTime())?'Not synced yet':`Last synced ${d.toLocaleString()}`}
@@ -26,7 +26,7 @@ async function cloudSignOut(){await client.auth.signOut();localStorage.removeIte
 async function cloudCreateFarm(){const name=el('cloudFarmName')?.value.trim();if(!name)return alert('Enter a farm name.');const {data,error}=await client.rpc('create_farm',{p_name:name});if(error)return alert(error.message);const created=Array.isArray(data)?data[0]:data;if(!created?.id)return alert('Farm creation did not return a farm record. Please try again.');farm={id:created.id,name:created.name,created_at:created.created_at};localStorage.setItem(FARM_KEY,farm.id);status(`Signed in • ${farm.name}`);renderCloud();scheduleAutoSync('farm created')}
 window.cloudSignIn=cloudSignIn;window.cloudForgotPassword=cloudForgotPassword;window.cloudSignUp=cloudSignUp;window.cloudSignOut=cloudSignOut;window.cloudCreateFarm=cloudCreateFarm;
 function setupAutoSync(){if(window.__cvCloudAutoInstalled)return;window.__cvCloudAutoInstalled=true;const original=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){const r=original.call(this,k,v);if(this===localStorage&&WATCH_KEYS.has(String(k))&&!suspendAuto)scheduleAutoSync(String(k));return r};window.addEventListener('cv-local-change',()=>scheduleAutoSync('media'));window.addEventListener('online',()=>scheduleAutoSync('back online',1200));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleAutoSync('app active',1800)});window.cvCloudChanged=()=>scheduleAutoSync('app change')}
-function scheduleAutoSync(_why,delay=3000){if(suspendAuto||!user||!farm||!navigator.onLine)return;clearTimeout(autoTimer);autoTimer=setTimeout(()=>cloudSyncNow(true),delay)}
+function scheduleAutoSync(_why,delay=3000){if(suspendAuto||!user||!farm||!navigator.onLine)return;clearTimeout(autoTimer);autoTimer=setTimeout(()=>{const fn=window.cloudSyncNow||cloudSyncNow;fn(true)},delay)}
 async function fetchAll(table,columns,apply){let out=[],from=0;while(true){let q=client.from(table).select(columns).eq('farm_id',farm.id).range(from,from+999);if(apply)q=apply(q);const {data,error}=await q;if(error)throw error;out.push(...(data||[]));if(!data||data.length<1000)break;from+=1000}return out}
 function readHashes(){try{return JSON.parse(localStorage.getItem(HASH_KEY)||'{}')}catch{return{}}}
 function writeHashes(h){localStorage.setItem(HASH_KEY,JSON.stringify(h))}
