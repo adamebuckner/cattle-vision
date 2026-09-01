@@ -3,32 +3,68 @@ if(window.__cvBulkStabilityInstalled)return;
 window.__cvBulkStabilityInstalled=true;
 
 const DIRTY_KEY='cv2-cloud-dirty';
+const FIELD_UNTIL_KEY='cv2-field-work-until';
+const FIELD_IDLE_MS=5*60*1000;
+const SUPABASE_HOST='rtyiqggxruwejqqyqtmv.supabase.co';
 const nativeSetItem=Storage.prototype.setItem;
 let deferredCloud=false;
 let wrappedCloudFn=null;
 let wrappedChangedFn=null;
+let wrappedSavePhotoFn=null;
+let idleTimer=null;
 
-function nativeLocalSet(key,value){
-  nativeSetItem.call(localStorage,key,value);
-}
-
-function markDirty(){
-  try{nativeLocalSet(DIRTY_KEY,'1')}catch(e){console.warn('Could not mark bulk work for cloud sync',e)}
-}
-
+function nativeLocalSet(key,value){nativeSetItem.call(localStorage,key,value)}
+function markDirty(){try{nativeLocalSet(DIRTY_KEY,'1')}catch(e){console.warn('Could not mark field work for cloud sync',e)}}
 function active(){return window.__cvBulkImportActive===true}
+function fieldUntil(){const n=Number(localStorage.getItem(FIELD_UNTIL_KEY)||0);return Number.isFinite(n)?n:0}
+function inCooldown(){return Date.now()<fieldUntil()}
+function touchFieldWork(){
+  try{nativeLocalSet(FIELD_UNTIL_KEY,String(Date.now()+FIELD_IDLE_MS))}catch{}
+  scheduleIdleCloud();
+}
 
-// Media saves dispatch this event. During a bulk pasture/photo session we keep it
-// from waking the cloud uploader while Safari is also compressing and saving photos.
+function scheduleIdleCloud(){
+  clearTimeout(idleTimer);
+  const wait=Math.max(1200,fieldUntil()-Date.now()+1200);
+  idleTimer=setTimeout(()=>{
+    if(active()||inCooldown()){scheduleIdleCloud();return}
+    ensureChangedGuard();
+    ensureCloudGuard();
+    try{
+      if(typeof window.cvCloudChanged==='function')window.cvCloudChanged();
+      else window.dispatchEvent(new Event('cv-local-change'));
+    }catch(e){console.warn('Field work is safe locally; cloud sync will retry later',e)}
+  },wait);
+}
+
+// Give cattle entry priority over an already-running Supabase backup. If a cloud
+// request tries to start while the sorter is open, make it look like a temporary
+// network interruption so the cloud job exits and can resume later.
+if(!window.__cvFieldFetchGuardInstalled){
+  window.__cvFieldFetchGuardInstalled=true;
+  const originalFetch=window.fetch.bind(window);
+  window.fetch=function(input,init){
+    try{
+      const url=typeof input==='string'?input:(input&&input.url)||'';
+      if(active()&&url.includes(SUPABASE_HOST)&&(url.includes('/rest/v1/')||url.includes('/storage/v1/'))){
+        return Promise.reject(new TypeError('Failed to fetch: cattle entry has priority'));
+      }
+    }catch{}
+    return originalFetch(input,init);
+  };
+}
+
+// Media saves dispatch this event. During pasture/photo entry, do not wake cloud.
 window.addEventListener('cv-local-change',e=>{
   if(!active())return;
   deferredCloud=true;
   markDirty();
+  touchFieldWork();
   e.stopImmediatePropagation();
 },true);
 
-// Replace the normal save path only while a bulk session is active. Each cow is
-// still persisted immediately, but we skip the full herd redraw and cloud wake-up.
+// Save every cow immediately to local storage, but skip expensive herd redraws and
+// cloud wakeups while the batch is open.
 if(typeof window.save==='function'&&!window.save.__cvBulkLightSave){
   const normalSave=window.save;
   const guardedSave=function(){
@@ -36,6 +72,7 @@ if(typeof window.save==='function'&&!window.save.__cvBulkLightSave){
     try{
       nativeLocalSet('cv2-cattle',JSON.stringify(cattle));
       markDirty();
+      touchFieldWork();
       window.__cvBulkHadSaves=true;
       return true;
     }catch(e){
@@ -51,9 +88,10 @@ function ensureChangedGuard(){
   const fn=window.cvCloudChanged;
   if(typeof fn!=='function'||fn===wrappedChangedFn||fn.__cvBulkChangedGuard)return;
   const guarded=function(){
-    if(active()){
+    if(active()||inCooldown()){
       deferredCloud=true;
       markDirty();
+      scheduleIdleCloud();
       return;
     }
     return fn.apply(this,arguments);
@@ -67,10 +105,12 @@ function ensureCloudGuard(){
   const fn=window.cloudSyncNow;
   if(typeof fn!=='function'||fn===wrappedCloudFn||fn.__cvBulkCloudGuard)return;
   const guarded=async function(silent=false){
-    if(active()){
+    // Manual Sync Now is allowed after a batch. Automatic sync waits for idle time.
+    if(active()||(silent&&inCooldown())){
       deferredCloud=true;
       markDirty();
-      return {ok:true,deferred:true};
+      scheduleIdleCloud();
+      return {ok:true,deferred:true,fieldWork:true};
     }
     return fn.apply(this,arguments);
   };
@@ -79,17 +119,26 @@ function ensureCloudGuard(){
   window.cloudSyncNow=guarded;
 }
 
-function queueOneCloudPass(){
-  markDirty();
-  deferredCloud=false;
-  setTimeout(()=>{
-    ensureChangedGuard();
-    ensureCloudGuard();
+// The sorter itself is later hardened by qa-hardening.js. Keep this memory wrapper
+// around whichever save function is newest. Once a photo advances successfully,
+// release the original iPhone File reference immediately.
+function ensurePhotoMemoryGuard(){
+  const fn=window.saveCurrentBulkPhoto;
+  if(typeof fn!=='function'||fn===wrappedSavePhotoFn||fn.__cvBulkMemoryGuard)return;
+  const guarded=async function(){
+    const i=typeof bulkIndex==='number'?bulkIndex:-1;
+    const before=typeof bulkSaved==='number'?bulkSaved:0;
+    const out=await fn.apply(this,arguments);
     try{
-      if(typeof window.cvCloudChanged==='function')window.cvCloudChanged();
-      else window.dispatchEvent(new Event('cv-local-change'));
-    }catch(e){console.warn('Bulk work saved locally; cloud sync will retry later',e)}
-  },1200);
+      if(i>=0&&typeof bulkFiles!=='undefined'&&Array.isArray(bulkFiles)&&typeof bulkIndex==='number'&&bulkIndex>i&&typeof bulkSaved==='number'&&bulkSaved>before){
+        bulkFiles[i]=null;
+      }
+    }catch{}
+    return out;
+  };
+  guarded.__cvBulkMemoryGuard=true;
+  wrappedSavePhotoFn=guarded;
+  window.saveCurrentBulkPhoto=guarded;
 }
 
 if(typeof window.openBulkSorter==='function'&&!window.openBulkSorter.__cvBulkSessionGuard){
@@ -98,8 +147,10 @@ if(typeof window.openBulkSorter==='function'&&!window.openBulkSorter.__cvBulkSes
     window.__cvBulkImportActive=true;
     window.__cvBulkHadSaves=false;
     deferredCloud=false;
+    touchFieldWork();
     ensureChangedGuard();
     ensureCloudGuard();
+    ensurePhotoMemoryGuard();
     return open.apply(this,arguments);
   };
   guardedOpen.__cvBulkSessionGuard=true;
@@ -114,8 +165,9 @@ if(typeof window.closeBulkSorter==='function'&&!window.closeBulkSorter.__cvBulkS
     window.__cvBulkImportActive=false;
     window.__cvBulkHadSaves=false;
     if(hadSaves||deferredCloud){
+      markDirty();
+      touchFieldWork();
       if(typeof window.render==='function')window.render();
-      queueOneCloudPass();
     }
     return out;
   };
@@ -123,10 +175,12 @@ if(typeof window.closeBulkSorter==='function'&&!window.closeBulkSorter.__cvBulkS
   window.closeBulkSorter=guardedClose;
 }
 
-// Cloud wrappers are loaded asynchronously. Keep our guard outermost while the
-// page finishes starting so a visibility/network event cannot start a sync mid-batch.
+// Cloud and QA wrappers load asynchronously. Keep our field-priority guards outermost.
 setInterval(()=>{
   ensureChangedGuard();
   ensureCloudGuard();
+  ensurePhotoMemoryGuard();
 },500);
+
+if(inCooldown())scheduleIdleCloud();
 })();
