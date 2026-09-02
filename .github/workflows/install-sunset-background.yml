@@ -1,0 +1,57 @@
+name: Install sunset pasture background
+on:
+  push:
+    paths:
+      - background-release.trigger
+permissions:
+  contents: write
+jobs:
+  install-background:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and install pasture photo
+        run: |
+          if [ ! -f background-release.trigger ]; then
+            echo "Trigger removed; nothing to install."
+            exit 0
+          fi
+          cat bg-upload-1.b64 bg-upload-2.b64 > background.b64
+          ACTUAL="$(sha256sum background.b64 | awk '{print $1}')"
+          EXPECTED="ff1b0cedc29fc525159ca32aefb53a3c6e728fe00c8346f984da482c087a0605"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "Background photo checksum did not match. Refusing to deploy a damaged image."
+            echo "Expected: $EXPECTED"
+            echo "Actual:   $ACTUAL"
+            exit 1
+          fi
+          base64 --decode background.b64 > background.jpg
+          file background.jpg | grep -q 'JPEG image data'
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          css = Path('app-v2.css')
+          s = css.read_text()
+          old = "url('background.svg?v=professional1')"
+          new = "url('background.jpg?v=sunset1')"
+          if old not in s and new not in s:
+              raise SystemExit('Could not find the current background reference in app-v2.css')
+          s = s.replace(old, new)
+          css.write_text(s)
+
+          index = Path('index.html')
+          h = index.read_text()
+          h = re.sub(r'app-v2\.css\?v=[^\"\']+', 'app-v2.css?v=visual3', h, count=1)
+          h = re.sub(r'Cattle Vision v[0-9.]+ · Your records\. Your operation\.', 'Cattle Vision v3.7 · Your records. Your operation.', h)
+          index.write_text(h)
+          PY
+          rm -f background.b64 bg-upload-1.b64 bg-upload-2.b64 background-release.trigger
+      - name: Commit sunset pasture background
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Use ranch sunset photo as app background"
+          git push
