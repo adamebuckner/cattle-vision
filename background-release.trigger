@@ -1,1 +1,1 @@
-install verified sunset pasture background v3.7 retry 2
+check all sunset pasture background chunks retry 3
