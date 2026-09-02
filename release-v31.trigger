@@ -1,1 +1,1 @@
-release v3.5 grazing dates and cloud pasture refresh
+release v3.6 N-T cattle included in herd total
