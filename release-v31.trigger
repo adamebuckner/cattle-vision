@@ -1,1 +1,1 @@
-release v3.6 N-T cattle included in herd total
+release v3.7 sunset pasture background cache refresh
