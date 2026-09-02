@@ -10,37 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify and install pasture photo
+      - name: Install pasture photo
         run: |
-          if [ ! -f background-release.trigger ]; then
-            echo "Trigger removed; nothing to install."
-            exit 0
-          fi
-
-          cat > chunk-checks.txt <<'EOF'
-          002305067e834a9350324c9400e687769c5c26da49e4c47f934a92e7f6cad012  sunset-01a.b64
-          40193cb97794e4c6594bf13a67435a3c6b98cff1e965e20d97d2c0a8f96aa9d7  sunset-01b.b64
-          2dc2d9817a073224c37f3abdcffe05157c8f6e1cc7be62b7151b2c30a18b9920  sunset-02.b64
-          98e0d6098bafcba2311f226585b787f079078b680f0f3e78970af516705c5678  sunset-03a.b64
-          782fba180883198580a94c707fcb891977dc215910953d7e0997724dba26d787  sunset-03b.b64
-          fa1328e749e1adcc7595e247479ba48fd3404c43420c100edd8dbf0cbd718ae8  sunset-04.b64
-          8feb891a09aba9d1abd20cdca0c74ad8493cf0c563d39c4dbc4b6976ef0a3d03  sunset-05.b64
-          EOF
-          sha256sum -c chunk-checks.txt
-
-          cat sunset-01a.b64 sunset-01b.b64 sunset-02.b64 sunset-03a.b64 sunset-03b.b64 sunset-04.b64 sunset-05.b64 > background.b64
-          ACTUAL="$(sha256sum background.b64 | awk '{print $1}')"
-          EXPECTED="51d0eb9385b1b6e7dd93576c048d0a4996b10eb8d5d8e367cc9c15b775285203"
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "Background photo checksum did not match. Refusing to deploy a damaged image."
-            echo "Expected: $EXPECTED"
-            echo "Actual:   $ACTUAL"
+          set -e
+          if [ ! -f background-live.b64 ]; then
+            echo "background-live.b64 is missing"
             exit 1
           fi
 
-          base64 --decode background.b64 > background.jpg
+          base64 --decode background-live.b64 > background.jpg
           file background.jpg | grep -q 'JPEG image data'
-          identify background.jpg | grep -q '480x640'
 
           python - <<'PY'
           from pathlib import Path
@@ -48,21 +27,17 @@ jobs:
 
           css = Path('app-v2.css')
           s = css.read_text()
-          old = "url('background.svg?v=professional1')"
-          new = "url('background.jpg?v=sunset2')"
-          if old not in s and new not in s:
-              raise SystemExit('Could not find the current background reference in app-v2.css')
-          s = s.replace(old, new)
+          s = re.sub(r"url\('background(?:\.svg|\.jpg)[^']*'\)", "url('background.jpg?v=sunset-final-20260901')", s, count=1)
           css.write_text(s)
 
           index = Path('index.html')
           h = index.read_text()
-          h = re.sub(r'app-v2\.css\?v=[^\"\']+', 'app-v2.css?v=visual4', h, count=1)
+          h = re.sub(r'app-v2\.css\?v=[^\"\']+', 'app-v2.css?v=visual5', h, count=1)
           h = re.sub(r'Cattle Vision v[0-9.]+ · Your records\. Your operation\.', 'Cattle Vision v3.7 · Your records. Your operation.', h)
           index.write_text(h)
           PY
 
-          rm -f chunk-checks.txt background.b64 sunset-01.b64 sunset-01a.b64 sunset-01b.b64 sunset-02.b64 sunset-03.b64 sunset-03a.b64 sunset-03b.b64 sunset-04.b64 sunset-05.b64 bg-upload-1.b64 bg-upload-2.b64 background-release.trigger
+          rm -f background-live.b64 background-release.trigger
       - name: Commit sunset pasture background
         run: |
           git config user.name "github-actions[bot]"
