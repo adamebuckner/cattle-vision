@@ -10,15 +10,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install pasture photo
+      - name: Verify and install pasture photo
         run: |
           set -e
-          if [ ! -f background-live.b64 ]; then
-            echo "background-live.b64 is missing"
-            exit 1
-          fi
-
-          base64 --decode background-live.b64 > background.jpg
+          cat > sunset-checks.txt <<'EOF'
+          208733ccd4626df01e23ccccc433ffac32772723321d5d17312e6541b000640c  sunset-final-1.b64
+          3d339585d9001fa6ebb7e2fb5e0ff0ec02d529356e0132dc3042e94614007fe3  sunset-final-2.b64
+          7d0f34815eeba26e6532438e58968f9faf2ee4e43b053ef54c259f9a31e5f98f  sunset-final-3.b64
+          af80a351a5202e407222f01034de0f331ae41b6421b5fddb1ab4999efef685f6  sunset-final-4.b64
+          EOF
+          sha256sum -c sunset-checks.txt
+          cat sunset-final-1.b64 sunset-final-2.b64 sunset-final-3.b64 sunset-final-4.b64 > sunset-final.b64
+          echo "201a0385be815060a379f94ca48749983e18741f0d71c500399205b7ce410c8d  sunset-final.b64" | sha256sum -c -
+          base64 --decode sunset-final.b64 > background.jpg
+          echo "a15b91ab2a48767b27e03f9b220cca9a71b317c2010bff025e9fb5d9dac943f3  background.jpg" | sha256sum -c -
           file background.jpg | grep -q 'JPEG image data'
 
           python - <<'PY'
@@ -32,12 +37,12 @@ jobs:
 
           index = Path('index.html')
           h = index.read_text()
-          h = re.sub(r'app-v2\.css\?v=[^\"\']+', 'app-v2.css?v=visual5', h, count=1)
+          h = re.sub(r'app-v2\.css\?v=[^\"\']+', 'app-v2.css?v=visual6', h, count=1)
           h = re.sub(r'Cattle Vision v[0-9.]+ · Your records\. Your operation\.', 'Cattle Vision v3.7 · Your records. Your operation.', h)
           index.write_text(h)
           PY
 
-          rm -f background-live.b64 background-release.trigger
+          rm -f sunset-checks.txt sunset-final.b64 sunset-final-1.b64 sunset-final-2.b64 sunset-final-3.b64 sunset-final-4.b64 background-live.b64 background-release.trigger
       - name: Commit sunset pasture background
         run: |
           git config user.name "github-actions[bot]"
