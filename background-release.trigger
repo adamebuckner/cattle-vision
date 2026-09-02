@@ -1,1 +1,1 @@
-install sunset pasture background v3.7 retry 4
+install sunset pasture background v3.7 final
