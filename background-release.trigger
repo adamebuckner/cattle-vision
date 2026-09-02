@@ -1,1 +1,1 @@
-install sunset pasture background v3.7 final
+install verified sunset pasture background v3.7
