@@ -6,5 +6,6 @@ function makeNotice(){if(document.getElementById('testingNotice'))return;const m
 function loadCloud(){if(document.querySelector('script[data-cloud-loader]'))return;const s=document.createElement('script');s.src='cloud-loader.js?v=14';s.dataset.cloudLoader='1';document.body.appendChild(s)}
 function loadQa(){if(document.getElementById('cvQaHardeningScript'))return;const s=document.createElement('script');s.id='cvQaHardeningScript';s.src='qa-hardening.js?v=4';document.body.appendChild(s)}
 function loadPastureLibraryLater(){if(document.getElementById('cvPastureLibraryLaterScript'))return;const s=document.createElement('script');s.id='cvPastureLibraryLaterScript';s.src='pasture-library-later.js?v=3';document.body.appendChild(s)}
-makeNotice();loadPastureLibraryLater();loadCloud();loadQa();
+function loadPastureCloudRefresh(){if(document.getElementById('cvPastureCloudRefreshScript'))return;const s=document.createElement('script');s.id='cvPastureCloudRefreshScript';s.src='pasture-cloud-refresh.js?v=1';document.body.appendChild(s)}
+makeNotice();loadPastureLibraryLater();loadPastureCloudRefresh();loadCloud();loadQa();
 })();
