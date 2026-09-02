@@ -1,0 +1,17 @@
+(function(){
+if(window.__cvEquineCloudInstalled)return;window.__cvEquineCloudInstalled=true;
+const URL='https://rtyiqggxruwejqqyqtmv.supabase.co';
+const KEY='sb_publishable_BxkgX1XJz8o_PsTb_LcVDQ_7DR6oHOk';
+const FARM_KEY='cv2-cloud-farm-id',HORSE='Horse';
+let client=null,timer=null,wrappedSync=null,wrappedPull=null;
+function herd(){return typeof cattle!=='undefined'&&Array.isArray(cattle)?cattle:[]}
+function horses(){return herd().filter(a=>a.sex===HORSE)}
+async function ready(){if(!client&&window.supabase?.createClient)client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});if(!client)return false;const {data}=await client.auth.getSession();return !!data.session?.user}
+async function push(){if(!(await ready()))return;const farmId=localStorage.getItem(FARM_KEY);if(!farmId)return;const rows=horses().map(a=>({farm_id:farmId,animal_legacy_id:String(a.id),equine_class:a.equineClass||'Unknown',registered_name:a.registeredName||null,color_markings:a.colorMarkings||null,height_hands:Number.isFinite(Number(a.heightHands))?Number(a.heightHands):null,primary_use:a.primaryUse||null,microchip:a.equineMicrochip||null,farrier_notes:a.farrierNotes||null,dental_notes:a.dentalNotes||null,updated_at:new Date().toISOString()}));if(!rows.length)return;const {error}=await client.from('equine_profiles').upsert(rows,{onConflict:'farm_id,animal_legacy_id'});if(error)console.warn('Equine profile cloud backup will retry later',error)}
+async function pull(){if(!(await ready()))return;const farmId=localStorage.getItem(FARM_KEY);if(!farmId)return;const {data,error}=await client.from('equine_profiles').select('*').eq('farm_id',farmId).range(0,9999);if(error){console.warn('Equine profiles could not be restored yet',error);return}const map=new Map((data||[]).map(x=>[String(x.animal_legacy_id),x]));let changed=false;for(const a of horses()){const x=map.get(String(a.id));if(!x)continue;const next={equineClass:x.equine_class||'Unknown',registeredName:x.registered_name||'',colorMarkings:x.color_markings||'',heightHands:x.height_hands===null?null:Number(x.height_hands),primaryUse:x.primary_use||'',equineMicrochip:x.microchip||'',farrierNotes:x.farrier_notes||'',dentalNotes:x.dental_notes||''};for(const [k,v] of Object.entries(next)){if(a[k]!==v){a[k]=v;changed=true}}}if(changed){try{localStorage.setItem('cv2-cattle',JSON.stringify(herd()));if(typeof render==='function')render()}catch(e){console.warn('Equine cloud restore could not be saved locally',e)}}}
+function schedule(delay=4500){clearTimeout(timer);timer=setTimeout(()=>push().catch(e=>console.warn(e)),delay)}
+window.addEventListener('cv-equine-changed',()=>schedule());
+function installWrappers(){const s=window.cloudSyncNow;if(typeof s==='function'&&s!==wrappedSync&&!s.__cvEquineCloud){const w=async function(){const out=await s.apply(this,arguments);try{await push()}catch{}return out};w.__cvEquineCloud=true;wrappedSync=w;window.cloudSyncNow=w}const p=window.cloudPullNow;if(typeof p==='function'&&p!==wrappedPull&&!p.__cvEquineCloud){const w=async function(){const out=await p.apply(this,arguments);try{await pull()}catch{}return out};w.__cvEquineCloud=true;wrappedPull=w;window.cloudPullNow=w}}
+function start(){if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(ok=>{if(ok)setTimeout(()=>pull().catch(()=>{}),2000)});installWrappers();setInterval(installWrappers,900)}
+start();
+})();
