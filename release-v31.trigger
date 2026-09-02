@@ -1,1 +1,1 @@
-release v3.2 pasture library later
+release v3.3 pasture photo choice
