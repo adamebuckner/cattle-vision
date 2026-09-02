@@ -1,4 +1,4 @@
-name: Release v3.6 loader bump
+name: Release v3.7 sunset background
 on:
   push:
     paths:
@@ -10,21 +10,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Bump live loader version
+      - name: Force new sunset background asset and stylesheet cache
         run: |
           python - <<'PY'
           from pathlib import Path
+
+          css=Path('app-v2.css')
+          s=css.read_text()
+          s=s.replace("background:#36583d", "background:#26342a")
+          s=s.replace("background.svg?v=professional1", "background.svg?v=sunset-pasture-20260901")
+          css.write_text(s)
+
           p=Path('index.html')
-          s=p.read_text()
-          s=s.replace('testing-notice.js?v=19','testing-notice.js?v=20')
-          s=s.replace('Cattle Vision v3.5 · Your records. Your operation.','Cattle Vision v3.6 · Your records. Your operation.')
-          p.write_text(s)
+          h=p.read_text()
+          h=h.replace('app-v2.css?v=visual2','app-v2.css?v=sunset-pasture-20260901')
+          h=h.replace('Cattle Vision v3.6 · Your records. Your operation.','Cattle Vision v3.7 · Your records. Your operation.')
+          p.write_text(h)
           PY
-      - name: Commit live cache bump
+      - name: Commit sunset background release
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add app-v2.css index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "Refresh v3.6 N-T herd count cache"
+          git commit -m "Force sunset pasture background in v3.7"
           git push
