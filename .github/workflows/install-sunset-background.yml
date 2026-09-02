@@ -17,11 +17,14 @@ jobs:
             exit 0
           fi
 
-          echo "31000276e406488084efee2553daf91104b045960ca969210c15ca064bdc48d8  sunset-01.b64" | sha256sum -c -
-          echo "2dc2d9817a073224c37f3abdcffe05157c8f6e1cc7be62b7151b2c30a18b9920  sunset-02.b64" | sha256sum -c -
-          echo "703633203c9b0fce1595323211057ea1cc5e76ae677283b2ea0fd2d3643a6976  sunset-03.b64" | sha256sum -c -
-          echo "fa1328e749e1adcc7595e247479ba48fd3404c43420c100edd8dbf0cbd718ae8  sunset-04.b64" | sha256sum -c -
-          echo "8feb891a09aba9d1abd20cdca0c74ad8493cf0c563d39c4dbc4b6976ef0a3d03  sunset-05.b64" | sha256sum -c -
+          cat > chunk-checks.txt <<'EOF'
+          31000276e406488084efee2553daf91104b045960ca969210c15ca064bdc48d8  sunset-01.b64
+          2dc2d9817a073224c37f3abdcffe05157c8f6e1cc7be62b7151b2c30a18b9920  sunset-02.b64
+          703633203c9b0fce1595323211057ea1cc5e76ae677283b2ea0fd2d3643a6976  sunset-03.b64
+          fa1328e749e1adcc7595e247479ba48fd3404c43420c100edd8dbf0cbd718ae8  sunset-04.b64
+          8feb891a09aba9d1abd20cdca0c74ad8493cf0c563d39c4dbc4b6976ef0a3d03  sunset-05.b64
+          EOF
+          sha256sum -c chunk-checks.txt
 
           cat sunset-01.b64 sunset-02.b64 sunset-03.b64 sunset-04.b64 sunset-05.b64 > background.b64
           ACTUAL="$(sha256sum background.b64 | awk '{print $1}')"
@@ -57,7 +60,7 @@ jobs:
           index.write_text(h)
           PY
 
-          rm -f background.b64 sunset-01.b64 sunset-02.b64 sunset-03.b64 sunset-04.b64 sunset-05.b64 bg-upload-1.b64 bg-upload-2.b64 background-release.trigger
+          rm -f chunk-checks.txt background.b64 sunset-01.b64 sunset-02.b64 sunset-03.b64 sunset-04.b64 sunset-05.b64 bg-upload-1.b64 bg-upload-2.b64 background-release.trigger
       - name: Commit sunset pasture background
         run: |
           git config user.name "github-actions[bot]"
