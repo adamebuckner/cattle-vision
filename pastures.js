@@ -1,4 +1,10 @@
-let pastures=JSON.parse(localStorage.getItem('cv2-pastures')||'[]');
+let pastures=[];
+try{
+  const storedPastures=JSON.parse(localStorage.getItem('cv2-pastures')||'[]');
+  pastures=Array.isArray(storedPastures)?storedPastures:[];
+}catch(error){
+  console.error('Saved pasture names could not be read. The original saved value was left unchanged.',error);
+}
 let pasturePhotoTarget='';
 const PASTURE_DOG='Livestock Guardian Dog',PASTURE_HORSE='Horse';
 function savePastures(){localStorage.setItem('cv2-pastures',JSON.stringify(pastures));renderPastureOptions();}

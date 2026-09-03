@@ -216,31 +216,3 @@ if($('photoInput'))$('photoInput').onchange=e=>{
   const saveBtn=$('bulkSave');
   if(saveBtn)saveBtn.style.display='none';
 })();
-
-(function setupPastures(){
-  const css=document.createElement('link');
-  css.rel='stylesheet';
-  css.href='pastures.css?v=4';
-  document.head.appendChild(css);
-  const dl=document.createElement('datalist');
-  dl.id='pastureOptions';
-  document.body.appendChild(dl);
-  ['aLocation','rLocation'].forEach(id=>{
-    const el=$(id);
-    if(el){el.setAttribute('list','pastureOptions');el.placeholder='Choose or enter pasture...';}
-  });
-  document.querySelectorAll('.quick button').forEach(btn=>{
-    if(btn.textContent.includes('Pasture / Location')){
-      btn.setAttribute('onclick','openPastures()');
-      btn.innerHTML='Pastures<br><span class="muted">Create pastures, upload herds & move cattle</span>';
-    }
-  });
-  const modal=document.createElement('div');
-  modal.id='pastureModal';
-  modal.className='modal hidden';
-  modal.innerHTML=`<div class="sheet"><div class="row"><div><h2>Pastures</h2><div class="muted">Open a pasture to take a walk-through photo session, review photos later, move cattle, or work the whole herd.</div></div><button class="softbtn" onclick="closePastures()">Close</button></div><div class="pasture-add"><div><label>New Pasture Name</label><input id="newPastureName" placeholder="Example: Danny's Summer Pasture"></div><button class="greenbtn" onclick="addPasture()">Add Pasture</button></div><input id="pasturePhotoInput" type="file" accept="image/*" multiple style="display:none" onchange="handlePasturePhotoFiles(event)"><div id="pastureList" class="pasture-list"></div><div class="pasture-bulk"><h3>Move Cattle Between Pastures</h3><div class="muted">Filter by the herd's current pasture, select the cattle you are moving, then choose their destination pasture.</div><div class="pasture-transfer-grid"><div><label>Current pasture</label><select id="pastureSourceFilter" onchange="renderPastureAnimalRows()"><option value="">All cattle</option></select></div><div><label>Move selected cattle to</label><select id="bulkPastureSelect"><option value="">Choose pasture...</option></select></div><button class="greenbtn" onclick="bulkAssignPasture()">Move Selected</button></div><div id="pastureAnimalList" class="pasture-animal-list"></div></div></div>`;
-  document.body.appendChild(modal);
-  const s=document.createElement('script');
-  s.src='pastures.js?v=6';
-  document.body.appendChild(s);
-})();

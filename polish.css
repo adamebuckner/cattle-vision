@@ -26,10 +26,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .history{line-height:1.42}
 .notice{line-height:1.42}
 .footer{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.herd-pastures-shortcut{display:block;width:100%;margin-top:8px}
+.critical-farm-drawer .greenbtn{width:100%;text-align:left;min-height:50px}
 
 @media(max-width:800px){
   .stats{margin-bottom:26px}
-  .animal{backdrop-filter:none;-webkit-backdrop-filter:none}
+  body{background-image:linear-gradient(180deg,rgba(21,55,31,.12) 0%,rgba(255,255,255,.02) 24%,rgba(14,48,23,.10) 100%),url('background.jpg?v=sunset-final-20260901');background-position:center 54%;background-size:cover;background-repeat:no-repeat}
+  body::before{display:none}
+  .topbar,.statcard,.panel,.animal,.cloud-mobile-btn,.footer,.modal,.farm-drawer-backdrop{backdrop-filter:none;-webkit-backdrop-filter:none}
+  .topbar,.statcard,.panel{background:var(--cream-strong)}
+  .cloud-mobile-btn{background:#fcfaf3}
+  .footer{background:#14582a}
 }
 
 @media(max-width:500px){
