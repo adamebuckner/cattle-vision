@@ -26,8 +26,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .history{line-height:1.42}
 .notice{line-height:1.42}
 .footer{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
-.herd-pastures-shortcut{display:block;width:100%;margin-top:8px}
-.critical-farm-drawer .greenbtn{width:100%;text-align:left;min-height:50px}
+.menu{display:inline-flex;align-items:center;justify-content:center;min-width:46px;min-height:46px;text-decoration:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.herd-pastures-shortcut{display:block;width:100%;margin-top:8px;text-align:center;text-decoration:none;touch-action:manipulation}
+.quick a{display:block;min-height:76px;text-align:left;padding:13px;border:0;border-right:1px solid rgba(84,108,87,.22);background:transparent;font-weight:750;font-size:14px;color:#1c2b20;text-decoration:none;touch-action:manipulation}
+.quick a:last-child{border-right:0}
+.critical-farm-shell{display:none}
+.critical-farm-shell:target{display:block}
+.critical-farm-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:9990}
+.critical-farm-drawer .farm-menu-grid a{display:block;width:100%;min-height:50px;text-align:left;text-decoration:none}
+.critical-farm-drawer .greenbtn{color:#fff}
+.modal:target{display:flex!important}
 
 @media(max-width:800px){
   .stats{margin-bottom:26px}
@@ -58,7 +66,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .modal{align-items:flex-end;padding:8px 8px 0}
   .sheet{width:100%;max-height:calc(100dvh - 8px);border-radius:20px 20px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
   .farm-drawer{width:min(92vw,390px)}
-  .farm-menu-grid button{min-height:50px}
+  .farm-menu-grid button,.farm-menu-grid a{min-height:50px}
+  .quick a{min-height:66px;font-size:13px;border-right:0;border-bottom:1px solid rgba(84,108,87,.2)}
   .footer{font-size:11px}
 }
 
