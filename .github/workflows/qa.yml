@@ -25,20 +25,71 @@ jobs:
             node --check "$file"
           done
 
-      - name: Check local scripts and styles referenced by index.html
+      - name: Check local and dynamically referenced assets
+        shell: python
+        run: |
+          import collections, pathlib, re, sys
+          root = pathlib.Path('.')
+          html = (root / 'index.html').read_text(encoding='utf-8')
+
+          def local_path(ref):
+              ref = ref.strip()
+              if not ref or ref.startswith(('http://','https://','data:','blob:','#')):
+                  return None
+              return ref.split('?',1)[0].split('#',1)[0]
+
+          refs = []
+          refs += re.findall(r'(?:src|href)="([^"?#]+\.(?:js|css))(?:\?[^"#]*)?"', html)
+
+          for js in root.glob('*.js'):
+              text = js.read_text(encoding='utf-8')
+              for ref in re.findall(r"['\"]([^'\"]+\.(?:js|css)(?:\?[^'\"]*)?)['\"]", text):
+                  p = local_path(ref)
+                  if p:
+                      refs.append(p)
+
+          for css in root.glob('*.css'):
+              text = css.read_text(encoding='utf-8')
+              for ref in re.findall(r'url\(["\']?([^"\')]+)["\']?\)', text):
+                  p = local_path(ref)
+                  if p:
+                      refs.append(p)
+
+          missing = sorted({ref for ref in refs if not (root / ref).is_file()})
+          if missing:
+              print('Missing local files referenced by the app:')
+              for ref in missing:
+                  print(' -', ref)
+              sys.exit(1)
+          print(f'Checked {len(refs)} local/dynamic asset references; all exist.')
+
+          static_refs = re.findall(r'(?:src|href)="([^"?#]+\.(?:js|css))(?:\?[^"#]*)?"', html)
+          dupes = sorted(k for k,v in collections.Counter(static_refs).items() if v > 1)
+          if dupes:
+              print('Duplicate static script/style references:', ', '.join(dupes))
+              sys.exit(1)
+          print('No duplicate static script/style references found.')
+
+      - name: Check inline handler targets exist
         shell: python
         run: |
           import pathlib, re, sys
           root = pathlib.Path('.')
           html = (root / 'index.html').read_text(encoding='utf-8')
-          refs = re.findall(r'(?:src|href)="([^"?#]+\.(?:js|css))', html)
-          missing = [ref for ref in refs if not (root / ref).is_file()]
+          js = '\n'.join(p.read_text(encoding='utf-8') for p in root.glob('*.js'))
+          defined = set(re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(', js))
+          defined.update(re.findall(r'\bwindow\.([A-Za-z_$][\w$]*)\s*=', js))
+          handlers = re.findall(r'\bon(?:click|change|input)="([^"]+)"', html)
+          called = set()
+          for handler in handlers:
+              m = re.match(r'\s*([A-Za-z_$][\w$]*)\s*\(', handler)
+              if m:
+                  called.add(m.group(1))
+          missing = sorted(called - defined)
           if missing:
-              print('Missing local files referenced by index.html:')
-              for ref in missing:
-                  print(' -', ref)
+              print('Inline handlers reference missing functions:', ', '.join(missing))
               sys.exit(1)
-          print(f'Checked {len(refs)} local script/style references; all exist.')
+          print(f'Checked {len(called)} direct inline handler functions; all are defined.')
 
       - name: Check duplicate static HTML ids
         shell: python
@@ -51,3 +102,11 @@ jobs:
               print('Duplicate static HTML ids:', ', '.join(dupes))
               sys.exit(1)
           print(f'Checked {len(ids)} static HTML ids; no duplicates found.')
+
+      - name: Verify ranch background asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s background.jpg
+          file background.jpg | grep -qi 'JPEG image data'
+          echo "background.jpg is present and recognized as JPEG data."
