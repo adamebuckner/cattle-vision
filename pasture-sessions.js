@@ -12,8 +12,8 @@ let review={session:null,items:[],index:0,blob:null,url:''};
 const byId=id=>document.getElementById(id);
 const h=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const id=()=>crypto?.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);
-function sessions(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'[]')}catch{return[]}}
-function writeSessions(rows){localStorage.setItem(SESSION_KEY,JSON.stringify(rows));}
+function sessions(){try{const rows=JSON.parse(localStorage.getItem(SESSION_KEY)||'[]');return Array.isArray(rows)?rows:[]}catch{return[]}}
+function writeSessions(rows){try{localStorage.setItem(SESSION_KEY,JSON.stringify(rows))}catch(e){console.error('Could not save pasture session index',e);throw new Error('This device could not save the pasture session list. The current photo was not intentionally removed.')}}
 function updateSession(s){const rows=sessions(),i=rows.findIndex(x=>x.id===s.id);if(i>=0)rows[i]=s;else rows.push(s);writeSessions(rows);}
 function localSession(idv){return sessions().find(x=>x.id===idv)||null}
 
@@ -27,6 +27,7 @@ function openDb(){
   return sessionDbPromise;
 }
 async function putPhoto(p){const d=await openDb();return new Promise((resolve,reject)=>{const q=d.transaction(STORE,'readwrite').objectStore(STORE).put(p);q.onsuccess=()=>resolve(p);q.onerror=()=>reject(q.error)})}
+async function deletePhoto(pid){const d=await openDb();return new Promise(resolve=>{try{const q=d.transaction(STORE,'readwrite').objectStore(STORE).delete(pid);q.onsuccess=q.onerror=()=>resolve()}catch{resolve()}})}
 async function getPhoto(pid){const d=await openDb();return new Promise((resolve,reject)=>{const q=d.transaction(STORE,'readonly').objectStore(STORE).get(pid);q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error)})}
 async function sessionPhotoKeys(sessionId){const d=await openDb();return new Promise((resolve,reject)=>{const q=d.transaction(STORE,'readonly').objectStore(STORE).index('sessionId').getAllKeys(IDBKeyRange.only(sessionId));q.onsuccess=()=>resolve(q.result||[]);q.onerror=()=>reject(q.error)})}
 async function sessionPhotos(sessionId){const keys=await sessionPhotoKeys(sessionId),out=[];for(const k of keys){const p=await getPhoto(k);if(p)out.push(p)}return out.sort((a,b)=>String(a.capturedAt).localeCompare(String(b.capturedAt)))}
@@ -51,7 +52,7 @@ function ensureUi(){
   byId('psSortClose').onclick=closeSorter;
   byId('psSortTag').addEventListener('input',updateSortMatch);
   byId('psAssign').onclick=assignCurrentPhoto;
-  byId('psSkip').onclick=()=>markCurrent('skipped');
+  byId('psSkip').onclick=async()=>{try{await markCurrent('skipped')}catch(e){console.error(e);alert('That photo could not be marked as skipped, so it is still waiting in this session.')}};
 }
 
 function stopCamera(){if(stream){for(const t of stream.getTracks())try{t.stop()}catch{}stream=null}const v=byId('psVideo');if(v)v.srcObject=null;const b=byId('psSnap');if(b)b.disabled=true}
@@ -71,7 +72,8 @@ async function fileToJpegBlob(file){return new Promise((resolve,reject)=>{const 
 async function saveSessionBlob(blob,capturedAt=new Date().toISOString()){
   if(!currentSession)throw new Error('No pasture photo session is open.');
   const p={id:id(),sessionId:currentSession.id,pastureName:currentSession.pastureName,blob,capturedAt,status:'pending',cloudPath:''};
-  await putPhoto(p);currentSession.photoCount=(currentSession.photoCount||0)+1;updateSession(currentSession);
+  await putPhoto(p);const before=currentSession.photoCount||0;currentSession.photoCount=before+1;
+  try{updateSession(currentSession)}catch(e){currentSession.photoCount=before;await deletePhoto(p.id);throw e}
   window.__cvPastureCaptureActive=true;
   try{window.dispatchEvent(new Event('cv-local-change'))}catch{}
   updateCaptureCount();showLast(blob);return p;
@@ -84,7 +86,8 @@ function updateCaptureCount(){if(!currentSession)return;const n=currentSession.p
 async function startPasturePhotoSession(pastureName){
   ensureUi();stopCamera();
   currentSession={id:id(),pastureName:String(pastureName||'').trim(),status:'open',startedAt:new Date().toISOString(),finishedAt:'',photoCount:0,cloudId:''};
-  updateSession(currentSession);window.__cvPastureCaptureActive=true;
+  try{updateSession(currentSession)}catch(e){console.error(e);currentSession=null;window.__cvPastureCaptureActive=false;alert(e.message||'This pasture session could not be started on this device.');return}
+  window.__cvPastureCaptureActive=true;
   byId('psTitle').textContent=`${currentSession.pastureName} Photo Session`;
   byId('psSub').textContent='Walk the pasture and keep taking pictures. No tag numbers are required right now.';
   byId('psCameraMessage').textContent='Tap Start Camera to begin.';byId('psLast').innerHTML='';updateCaptureCount();
@@ -93,7 +96,8 @@ async function startPasturePhotoSession(pastureName){
 }
 async function finishPasturePhotoSession(showMessage=true){
   if(!currentSession){stopCamera();byId('pastureSessionModal')?.classList.add('hidden');window.__cvPastureCaptureActive=false;return}
-  stopCamera();currentSession.status='ready';currentSession.finishedAt=new Date().toISOString();updateSession(currentSession);
+  stopCamera();const oldStatus=currentSession.status,oldFinished=currentSession.finishedAt;currentSession.status='ready';currentSession.finishedAt=new Date().toISOString();
+  try{updateSession(currentSession)}catch(e){currentSession.status=oldStatus;currentSession.finishedAt=oldFinished;console.error(e);alert('The photos are still on this device, but the session could not be finalized. Keep Cattle Vision open and tap Finish Session again.');return}
   const n=currentSession.photoCount||0,p=currentSession.pastureName;currentSession=null;window.__cvPastureCaptureActive=false;
   byId('pastureSessionModal')?.classList.add('hidden');if(lastPreviewUrl){URL.revokeObjectURL(lastPreviewUrl);lastPreviewUrl=''}
   try{if(typeof window.cvCloudChanged==='function')window.cvCloudChanged();else window.dispatchEvent(new Event('cv-local-change'))}catch{}
@@ -141,17 +145,20 @@ async function renderReviewPhoto(){
 function matchesTag(t){const k=String(t||'').trim().toLowerCase();if(!k)return[];return (window.cattle||cattle||[]).filter(a=>String(a.tag||'').trim().toLowerCase()===k&&a.tag!=='N-T')}
 function updateSortMatch(){const t=byId('psSortTag').value.trim(),m=matchesTag(t),box=byId('psSortMatch');if(!t){box.textContent='No tag entered — this will create a new N-T animal record.';byId('psAssign').disabled=false}else if(m.length>1){box.textContent=`Tag ${t} is duplicated on ${m.length} records. Resolve the duplicate before attaching this photo.`;byId('psAssign').disabled=true}else if(m.length===1){box.textContent=`This photo will attach to existing Tag ${m[0].tag}.`;byId('psAssign').disabled=false}else{box.textContent=`Tag ${t} is new. A basic animal record will be created.`;byId('psAssign').disabled=false}}
 function blobToDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob)})}
-async function markCloud(item,status,tag=''){if(!review.session.cloudId)return;const ctx=await context();if(!ctx)return;let q=ctx.client.from('pasture_session_media').update({sort_status:status,assigned_tag:tag||null}).eq('farm_id',ctx.farmId);q=item.source==='cloud'?q.eq('id',item.id):q.eq('session_id',review.session.cloudId).eq('legacy_id',item.legacyId);const {error}=await q;if(error)console.warn('Could not update pasture photo sort status in cloud',error)}
+async function markCloud(item,status,tag=''){if(!review.session.cloudId)return;const ctx=await context();if(!ctx)return;let q=ctx.client.from('pasture_session_media').update({sort_status:status,assigned_tag:tag||null}).eq('farm_id',ctx.farmId);q=item.source==='cloud'?q.eq('id',item.id):q.eq('session_id',review.session.cloudId).eq('legacy_id',item.legacyId);const {error}=await q;if(error)throw error}
 async function markLocal(item,status,tag=''){if(item.source!=='local')return;const p=await getPhoto(item.id);if(!p)return;p.status=status;p.assignedTag=tag||'';await putPhoto(p)}
 async function markCurrent(status,tag=''){const item=review.items[review.index];await Promise.all([markLocal(item,status,tag),markCloud(item,status,tag)]);review.index++;await renderReviewPhoto()}
+async function deleteAnimalMediaId(mediaId){if(!mediaId||typeof db==='undefined'||!db)return;await new Promise(resolve=>{try{const q=db.transaction('media','readwrite').objectStore('media').delete(mediaId);q.onsuccess=q.onerror=()=>resolve()}catch{resolve()}})}
 async function assignCurrentPhoto(){
-  const item=review.items[review.index],raw=byId('psSortTag').value.trim(),m=matchesTag(raw);if(raw&&m.length>1)return alert(`Tag ${raw} is duplicated. Resolve that duplicate before attaching this photo.`);if(!review.blob)return alert('The photo has not loaded yet.');const sex=byId('psSortSex').value||'Cow';let animal=m[0]||null;const created=item.capturedAt||new Date().toISOString();
+  const item=review.items[review.index],raw=byId('psSortTag').value.trim(),m=matchesTag(raw);if(raw&&m.length>1)return alert(`Tag ${raw} is duplicated. Resolve that duplicate before attaching this photo.`);if(!review.blob)return alert('The photo has not loaded yet.');const sex=byId('psSortSex').value||'Cow';let animal=m[0]||null;const created=item.capturedAt||new Date().toISOString(),snapshot=JSON.stringify(cattle);let mediaId='';
   try{
+    const data=await blobToDataUrl(review.blob);
     if(!animal){animal=typeof norm==='function'?norm({id:id(),tag:raw||'N-T',sex,location:review.session.pastureName||'',created,notes:raw?'Created while sorting a pasture photo session':'No tag visible when pasture session photo was sorted'}):{id:id(),tag:raw||'N-T',sex,location:review.session.pastureName||'',created,breeding:[],calvings:[],health:[]};if(!raw)animal.noTag=true;if(review.session.pastureName)animal.locationHistory=[{from:'',to:review.session.pastureName,date:created}];cattle.push(animal)}else if(!(animal.location||'').trim()&&review.session.pastureName){if(typeof setAnimalPasture==='function')setAnimalPasture(animal,review.session.pastureName);else animal.location=review.session.pastureName}
-    const data=await blobToDataUrl(review.blob);await putMedia({id:id(),animalId:String(animal.id),type:'photo',data,created,source:'pasture-photo-session'});if(typeof save==='function')save();await markCurrent('assigned',raw||'N-T');
-  }catch(e){console.error(e);alert('That photo could not be attached. It is still in the pasture session and was not removed.')}
+    mediaId=id();await putMedia({id:mediaId,animalId:String(animal.id),type:'photo',data,created,source:'pasture-photo-session'});if(typeof save==='function')save();await markCurrent('assigned',raw||'N-T');
+  }catch(e){console.error(e);if(mediaId)await deleteAnimalMediaId(mediaId);try{await Promise.allSettled([markLocal(item,'pending',''),markCloud(item,'pending','')])}catch{}try{cattle=JSON.parse(snapshot).map(a=>typeof norm==='function'?norm(a):a);localStorage.setItem('cv2-cattle',JSON.stringify(cattle));if(typeof window.render==='function')window.render()}catch(rollbackError){console.error('Pasture photo rollback could not fully persist',rollbackError)}alert('That photo could not be attached cleanly, so Cattle Vision rolled the animal change back and kept the pasture photo waiting to be sorted.')
+  }
 }
-async function completeReviewSession(){const s=review.session;if(s.localId){const ls=localSession(s.localId);if(ls){ls.status='complete';updateSession(ls)}}if(s.cloudId){const ctx=await context();if(ctx)await ctx.client.from('pasture_photo_sessions').update({status:'complete',updated_at:new Date().toISOString()}).eq('farm_id',ctx.farmId).eq('id',s.cloudId)}window.__cvPastureCaptureActive=false;try{window.cvCloudChanged?.()}catch{}}
+async function completeReviewSession(){const s=review.session;if(s.localId){const ls=localSession(s.localId);if(ls){ls.status='complete';try{updateSession(ls)}catch(e){console.warn(e)}}}if(s.cloudId){const ctx=await context();if(ctx){const {error}=await ctx.client.from('pasture_photo_sessions').update({status:'complete',updated_at:new Date().toISOString()}).eq('farm_id',ctx.farmId).eq('id',s.cloudId);if(error)console.warn('Could not mark cloud pasture session complete',error)}}window.__cvPastureCaptureActive=false;try{window.cvCloudChanged?.()}catch{}}
 function closeSorter(){clearReviewUrl();byId('pastureSessionSortModal')?.classList.add('hidden');window.__cvPastureCaptureActive=false;try{window.cvCloudChanged?.()}catch{}review={session:null,items:[],index:0,blob:null,url:''}}
 
 async function uploadWithRetry(client,path,blob){let last;for(let n=1;n<=3;n++){try{const {error}=await client.storage.from('cattle-vision-media').upload(path,blob,{contentType:blob.type||'image/jpeg',upsert:true});if(!error)return;last=error}catch(e){last=e}if(n<3)await new Promise(r=>setTimeout(r,n*1000))}throw last||new Error('Pasture session photo upload failed')}
