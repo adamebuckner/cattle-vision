@@ -17,6 +17,5 @@ function update(){
 }
 window.cvUpdateNoTagHerdCount=update;
 update();
-const target=document.getElementById('totalN');if(target)new MutationObserver(update).observe(target,{childList:true,characterData:true,subtree:true});
 window.addEventListener('cv-local-change',()=>setTimeout(update,50));
 })();

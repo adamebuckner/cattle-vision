@@ -60,8 +60,12 @@ jobs:
               failures.append('bulk-stability.js wrapper guards are not bounded and composable')
 
           no_tag = pathlib.Path('herd-no-tag.js').read_text(encoding='utf-8')
-          if 'setInterval(update' in no_tag or 'if(total.textContent!==totalText)' not in no_tag:
+          if 'setInterval(update' in no_tag or 'MutationObserver' in no_tag or 'if(total.textContent!==totalText)' not in no_tag:
               failures.append('herd-no-tag.js can retrigger its own total-count observer')
+
+          cloud_sync = pathlib.Path('cloud-sync.js').read_text(encoding='utf-8')
+          if "localStorage.getItem(DIRTY_KEY)!=='1'" not in cloud_sync or "visibilitychange" in cloud_sync:
+              failures.append('cloud-sync.js can start a full backup just because the app opened')
 
           if failures:
               print('\n'.join(failures))

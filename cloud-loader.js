@@ -30,7 +30,7 @@ function loadCloud(){
   if(document.getElementById('cvCloudSyncScript'))return;
   const s=document.createElement('script');
   s.id='cvCloudSyncScript';
-  s.src='cloud-sync.js?v=11';
+  s.src='cloud-sync.js?v=12';
   s.onload=()=>{setTimeout(addMobileButton,50);loadSecurity();loadAutoHook();loadRecovery();loadIntegrity();loadTombstones()};
   s.onerror=()=>console.error('Cattle Vision cloud sync code failed to load');
   document.body.appendChild(s)
