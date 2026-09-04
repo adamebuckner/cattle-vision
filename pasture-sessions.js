@@ -32,6 +32,8 @@ async function getPhoto(pid){const d=await openDb();return new Promise((resolve,
 async function sessionPhotoKeys(sessionId){const d=await openDb();return new Promise((resolve,reject)=>{const q=d.transaction(STORE,'readonly').objectStore(STORE).index('sessionId').getAllKeys(IDBKeyRange.only(sessionId));q.onsuccess=()=>resolve(q.result||[]);q.onerror=()=>reject(q.error)})}
 async function sessionPhotos(sessionId){const keys=await sessionPhotoKeys(sessionId),out=[];for(const k of keys){const p=await getPhoto(k);if(p)out.push(p)}return out.sort((a,b)=>String(a.capturedAt).localeCompare(String(b.capturedAt)))}
 async function localPendingCount(sessionId){const ps=await sessionPhotos(sessionId);return ps.filter(p=>(p.status||'pending')==='pending').length}
+async function clearPastureSessionMedia(){const d=await openDb();return new Promise((resolve,reject)=>{const q=d.transaction(STORE,'readwrite').objectStore(STORE).clear();q.onsuccess=()=>resolve();q.onerror=()=>reject(q.error)})}
+window.cvClearPastureSessionMedia=clearPastureSessionMedia;
 
 function ensureUi(){
   if(byId('pastureSessionModal'))return;

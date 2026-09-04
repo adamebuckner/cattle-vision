@@ -17,7 +17,9 @@
   const summary=document.createElement('div');summary.className='muted';summary.style.marginTop='8px';summary.style.display='none';herd.insertAdjacentElement('beforebegin',summary);
   function countCattle(){return (typeof cattle!=='undefined'&&Array.isArray(cattle))?cattle.filter(a=>!SPECIAL.has(a.sex)).length:Number(document.getElementById('totalN')?.textContent||0)}
   function update(){const count=countCattle();herd.style.display=collapsed?'none':'';summary.style.display=collapsed?'block':'none';summary.textContent=collapsed?`${count} cattle hidden — tap Show Herd to view pictures and records.`:'';toggle.textContent=collapsed?'Show Herd':'Hide Herd';toggle.setAttribute('aria-expanded',String(!collapsed))}
-  toggle.addEventListener('click',()=>{collapsed=!collapsed;try{localStorage.setItem('cv2-herd-collapsed',collapsed?'1':'0')}catch(error){console.error(error)}update();if(!collapsed&&typeof window.render==='function')window.render()});
+  function setCollapsed(next,rerender=true){collapsed=!!next;try{localStorage.setItem('cv2-herd-collapsed',collapsed?'1':'0')}catch(error){console.error(error)}update();if(rerender&&!collapsed&&typeof window.render==='function')window.render()}
+  window.cvSetHerdCollapsed=setCollapsed;window.cvUpdateHerdCollapse=update;
+  toggle.addEventListener('click',()=>setCollapsed(!collapsed));
   const search=document.getElementById('search');if(search)search.addEventListener('input',()=>{if(search.value.trim()&&collapsed){collapsed=false;try{localStorage.setItem('cv2-herd-collapsed','0')}catch(error){console.error(error)}update();if(typeof window.render==='function')window.render()}});
-  const observer=new MutationObserver(update);const total=document.getElementById('totalN');if(total)observer.observe(total,{childList:true,subtree:true});update();
+  window.addEventListener('cv-herd-view',()=>setCollapsed(false,false));update();
 })();

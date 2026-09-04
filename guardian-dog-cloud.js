@@ -13,6 +13,6 @@ async function pull(){if(!(await ready()))return;const farmId=localStorage.getIt
 function schedule(delay=4500){clearTimeout(timer);timer=setTimeout(push,delay)}
 window.addEventListener('cv-dog-changed',()=>schedule());
 function installWrappers(){const s=window.cloudSyncNow;if(typeof s==='function'&&s!==wrappedSync&&!s.__cvDogCloud){const w=async function(){const out=await s.apply(this,arguments);try{await push()}catch{}return out};Object.assign(w,s);w.__cvDogCloud=true;wrappedSync=w;window.cloudSyncNow=w}const p=window.cloudPullNow;if(typeof p==='function'&&p!==wrappedPull&&!p.__cvDogCloud){const w=async function(){const out=await p.apply(this,arguments);try{await pull()}catch{}return out};Object.assign(w,p);w.__cvDogCloud=true;wrappedPull=w;window.cloudPullNow=w}}
-function start(){if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(ok=>{if(ok)setTimeout(pull,1800)});installWrappers();let tries=0;const timer=setInterval(()=>{installWrappers();tries++;if((window.cloudSyncNow?.__cvDogCloud&&window.cloudPullNow?.__cvDogCloud)||tries>=40)clearInterval(timer)},250)}
+function start(){if(window.__cvCloudManualMode){installWrappers();return}if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(ok=>{if(ok)setTimeout(pull,1800)});installWrappers();let tries=0;const timer=setInterval(()=>{installWrappers();tries++;if((window.cloudSyncNow?.__cvDogCloud&&window.cloudPullNow?.__cvDogCloud)||tries>=40)clearInterval(timer)},250)}
 start();
 })();

@@ -27,5 +27,5 @@ async function sync(){
 }
 window.cvSyncPastureSessionsStandalone=sync;
 function install(){if(wrapped||typeof window.cloudSyncNow!=='function')return false;const original=window.cloudSyncNow;const hook=async function(silent=false){const result=await original.apply(this,arguments);if(window.__cvBulkImportActive===true||window.__cvPastureCaptureActive===true)return result;try{const sr=await sync();return Object.assign({},result,{pastureSessions:sr})}catch(e){console.error('Pasture photo session cloud sync paused',e);try{localStorage.setItem('cv2-cloud-dirty','1')}catch{}if(!silent)alert('Your cattle records finished syncing, but some pasture-session photos are still waiting for cloud backup. They remain saved on this device and will retry later.');return Object.assign({},result,{pastureSessions:{ok:false,error:e}})}};Object.assign(hook,original);hook.__cvPastureSessionCloudHook=true;window.cloudSyncNow=hook;wrapped=true;return true}
-const t=setInterval(()=>{if(install())clearInterval(t)},300);setTimeout(()=>{install()},50);
+if(window.__cvCloudManualMode)install();else{const t=setInterval(()=>{if(install())clearInterval(t)},300);setTimeout(()=>{install()},50)}
 })();

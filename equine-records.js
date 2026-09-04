@@ -38,5 +38,5 @@ if(typeof window.saveRecord==='function'&&!window.saveRecord.__cvEquine){const o
 if(typeof window.addBreeding==='function'&&!window.addBreeding.__cvEquine){const old=window.addBreeding;window.addBreeding=function(){const a=herd().find(x=>String(x.id)===String(typeof currentId!=='undefined'?currentId:''));const r=old.apply(this,arguments);if(isHorse(a))window.dispatchEvent(new Event('cv-equine-changed'));return r};window.addBreeding.__cvEquine=true}
 if(typeof window.addCalving==='function'&&!window.addCalving.__cvEquine){const old=window.addCalving;window.addCalving=function(){const a=herd().find(x=>String(x.id)===String(typeof currentId!=='undefined'?currentId:''));const r=old.apply(this,arguments);if(isHorse(a)){setTimeout(()=>prepareHorseForm(true),0);window.dispatchEvent(new Event('cv-equine-changed'))}return r};window.addCalving.__cvEquine=true}
 }
-install();setInterval(ensureMenu,1500);
+install();
 })();

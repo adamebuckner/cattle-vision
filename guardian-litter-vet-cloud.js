@@ -18,6 +18,6 @@ if(changed){try{localStorage.setItem('cv2-cattle',JSON.stringify(herd()));if(typ
 function schedule(delay=4700){clearTimeout(timer);timer=setTimeout(()=>push().catch(e=>console.warn(e)),delay)}
 window.addEventListener('cv-litter-vet-changed',()=>schedule());
 function install(){const s=window.cloudSyncNow;if(typeof s==='function'&&s!==wrappedSync&&!s.__cvLitterVetCloud){const w=async function(){const out=await s.apply(this,arguments);try{await push()}catch{}return out};Object.assign(w,s);w.__cvLitterVetCloud=true;wrappedSync=w;window.cloudSyncNow=w}const p=window.cloudPullNow;if(typeof p==='function'&&p!==wrappedPull&&!p.__cvLitterVetCloud){const w=async function(){const out=await p.apply(this,arguments);try{await pull()}catch{}return out};Object.assign(w,p);w.__cvLitterVetCloud=true;wrappedPull=w;window.cloudPullNow=w}}
-function start(){if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(u=>{if(u)setTimeout(()=>pull().catch(()=>{}),2400)});install();let tries=0;const timer=setInterval(()=>{install();tries++;if((window.cloudSyncNow?.__cvLitterVetCloud&&window.cloudPullNow?.__cvLitterVetCloud)||tries>=40)clearInterval(timer)},250)}
+function start(){if(window.__cvCloudManualMode){install();return}if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(u=>{if(u)setTimeout(()=>pull().catch(()=>{}),2400)});install();let tries=0;const timer=setInterval(()=>{install();tries++;if((window.cloudSyncNow?.__cvLitterVetCloud&&window.cloudPullNow?.__cvLitterVetCloud)||tries>=40)clearInterval(timer)},250)}
 start();
 })();

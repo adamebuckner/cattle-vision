@@ -189,8 +189,10 @@ const guardTimer=setInterval(()=>{
   const ready=window.cvCloudChanged?.__cvBulkChangedGuard&&
     window.cloudSyncNow?.__cvBulkCloudGuard&&
     window.saveCurrentBulkPhoto?.__cvBulkMemoryGuard;
-  if(ready||guardChecks>=120)clearInterval(guardTimer);
+  if(ready||guardChecks>=20)clearInterval(guardTimer);
 },500);
+
+window.addEventListener('cv-cloud-ready',()=>{ensureChangedGuard();ensureCloudGuard();ensurePhotoMemoryGuard()});
 
 if(inCooldown())scheduleIdleCloud();
 })();

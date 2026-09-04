@@ -29,6 +29,8 @@ async function saveMedRestock(){const meds=readMeds(),m=meds.find(x=>String(x.id
 window.saveMedRestock=saveMedRestock;
 function cardId(card){const b=[...card.querySelectorAll('button')].find(x=>/deleteMedication\(/.test(x.getAttribute('onclick')||''));const m=(b?.getAttribute('onclick')||'').match(/deleteMedication\('([^']+)'\)/);return m?.[1]||null}
 function decorateCards(){const meds=readMeds(),map=new Map(meds.map(m=>[String(m.id),m]));document.querySelectorAll('#medList .med-card').forEach(card=>{if(card.dataset.costDecorated)return;const mid=cardId(card),m=map.get(String(mid));if(!m)return;card.dataset.costDecorated='1';const p=latestPurchase(m),meta=card.querySelector('.med-meta'),actions=card.querySelector('.med-actions');if(meta){const d=document.createElement('div');d.className='med-cost-line';d.textContent=p?`Current cost: ${fmt(p.costPerUnit)} per ${p.unit} • ${fmt(p.price)} / ${p.size} ${p.unit}${p.date?` • ${p.date}`:''}`:'Purchase cost not entered yet';meta.appendChild(d)}if(actions){const b=document.createElement('button');b.className='softbtn';b.textContent='Restock / Cost';b.onclick=()=>openMedRestock(m.id);actions.insertBefore(b,actions.lastElementChild)}})}
-function install(){injectFields();injectRestockModal();wrapSave();decorateCards()}
-setInterval(install,900);setTimeout(install,200);
+function wrapMenu(){if(typeof window.openFarmMenu!=='function'||window.openFarmMenu.__cvMedicationCosts)return;const old=window.openFarmMenu;const wrapped=function(){const out=old.apply(this,arguments);install();return out};Object.assign(wrapped,old);wrapped.__cvMedicationCosts=true;window.openFarmMenu=wrapped}
+function wrapRefresh(){if(typeof window.cvRefreshMedicationCabinet!=='function'||window.cvRefreshMedicationCabinet.__cvMedicationCosts)return;const old=window.cvRefreshMedicationCabinet;const wrapped=function(){const out=old.apply(this,arguments);decorateCards();return out};Object.assign(wrapped,old);wrapped.__cvMedicationCosts=true;window.cvRefreshMedicationCabinet=wrapped}
+function install(){injectFields();injectRestockModal();wrapSave();wrapMenu();wrapRefresh();decorateCards()}
+install();
 })();

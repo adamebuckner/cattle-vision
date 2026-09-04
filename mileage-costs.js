@@ -30,5 +30,5 @@ function deleteMileageCost(eid){const row=trips().find(x=>String(x.id)===String(
 window.deleteMileageCost=deleteMileageCost;
 function injectMenus(){const econ=el('econFarmMenu');if(econ&&!el('mileFarmBtn')){const grid=econ.querySelector('.farm-menu-grid');if(grid){const b=document.createElement('button');b.id='mileFarmBtn';b.className='softbtn';b.type='button';b.innerHTML='<b>Ranch Mileage</b><br><span class="muted">Driving cost allocated per cow</span>';b.onclick=()=>{openMileageCosts();window.closeFarmMenu?.()};grid.appendChild(b)}}const actions=el('econDashboard')?.querySelector('.econ-actions');if(actions&&!el('mileEconBtn')){const b=document.createElement('button');b.id='mileEconBtn';b.className='softbtn';b.type='button';b.textContent='Ranch Mileage';b.onclick=openMileageCosts;actions.appendChild(b)}}
 function install(){ensure();injectMenus()}
-window.addEventListener('cv-mileage-restored',()=>{if(el('mileageModal')&&!el('mileageModal').classList.contains('hidden'))renderHistory()});setInterval(install,900);setTimeout(install,250);
+window.addEventListener('cv-mileage-restored',()=>{if(el('mileageModal')&&!el('mileageModal').classList.contains('hidden'))renderHistory()});install();
 })();

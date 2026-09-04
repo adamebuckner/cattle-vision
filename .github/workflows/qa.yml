@@ -28,7 +28,7 @@ jobs:
       - name: Prevent repeating wrapper regressions
         shell: python
         run: |
-          import pathlib, sys
+          import pathlib, re, sys
 
           unbounded = {
               'ai-cattle.js': 'setInterval(wrap,',
@@ -70,6 +70,59 @@ jobs:
           index_html = pathlib.Path('index.html').read_text(encoding='utf-8')
           if '__cvSafeMode' not in index_html or "get('safe')==='1'" not in index_html:
               failures.append('index.html is missing the lightweight iPhone safe-mode gate')
+
+          static_scripts = re.findall(r'<script[^>]+src="([^"?]+\.js)(?:\?[^"#]*)?"', index_html)
+          required_core = {
+              'app-v2.js', 'pastures.js', 'bulk-sort.js', 'farm-menu.js',
+              'pasture-costs.js', 'ranch-economics.js', 'cloud-on-demand.js',
+          }
+          missing_core = sorted(required_core - set(static_scripts))
+          if missing_core:
+              failures.append('stable core scripts are missing: ' + ', '.join(missing_core))
+          if 'cloud-loader.js' in static_scripts or 'data-cloud-loader' in index_html:
+              failures.append('cloud must load only after the user opens Cloud')
+          for marker in ("data-herd-view=\"all\"", "data-herd-view=\"young\"",
+                         "data-herd-view=\"females\"", "data-herd-view=\"sires\""):
+              if marker not in index_html:
+                  failures.append(f'herd summary filter is missing {marker}')
+
+          app = pathlib.Path('app-v2.js').read_text(encoding='utf-8')
+          for required in ('function setHerdView(', 'function inHerdView(',
+                           'render.__cvHardened=true', "pastureCostEvents",
+                           "mileageEvents"):
+              if required not in app:
+                  failures.append(f'app-v2.js is missing {required}')
+
+          local_ui = (
+              'guardian-grass.js', 'farm-menu.js', 'medication-costs.js',
+              'ai-cattle.js', 'guardian-dogs.js', 'guardian-statuses.js',
+              'guardian-vet.js', 'guardian-litter-vet.js',
+              'guardian-litter-refresh.js', 'guardian-vet-costs.js',
+              'medication-treatment-costs.js', 'ranch-economics.js',
+              'pasture-costs.js', 'hay-market-preset.js', 'mileage-costs.js',
+              'pasture-sessions.js', 'pasture-library-later.js',
+              'equine-records.js', 'qa-hardening.js', 'herd-no-tag.js',
+          )
+          for filename in local_ui:
+              if 'setInterval(' in pathlib.Path(filename).read_text(encoding='utf-8'):
+                  failures.append(f'{filename} must not run a permanent UI polling loop')
+
+          grass = pathlib.Path('guardian-grass.js').read_text(encoding='utf-8')
+          menu = pathlib.Path('farm-menu.js').read_text(encoding='utf-8')
+          if 'Object.assign(wrappedRender,origRender)' not in grass:
+              failures.append('guardian-grass.js does not preserve hardened render metadata')
+          if 'Object.assign(wrappedRender,originalRender)' not in menu:
+              failures.append('farm-menu.js does not preserve hardened render metadata')
+
+          on_demand = pathlib.Path('cloud-on-demand.js').read_text(encoding='utf-8')
+          if '__cvCloudManualMode=true' not in on_demand or "cloud-loader.js?v=18" not in on_demand:
+              failures.append('cloud-on-demand.js is not enforcing manual cloud startup')
+
+          pasture_costs = pathlib.Path('pasture-costs.js').read_text(encoding='utf-8')
+          for required in ('Grain / Concentrate', 'Feed Cost / Cow Now',
+                           'feed/hay/grain', 'Add Feed / View Costs'):
+              if required not in pasture_costs:
+                  failures.append(f'pasture-costs.js is missing {required}')
 
           if failures:
               print('\n'.join(failures))

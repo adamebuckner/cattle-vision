@@ -42,5 +42,5 @@ if(typeof window.saveNewAnimal==='function'&&!window.saveNewAnimal.__cvDog){cons
 if(typeof window.openRecord==='function'&&!window.openRecord.__cvDog){const old=window.openRecord;window.openRecord=async function(id){const a=herd().find(x=>String(x.id)===String(id));prepareDogForm(isDog(a));const r=await old.apply(this,arguments);if(isDog(a))loadDogFields(a);return r};window.openRecord.__cvDog=true}
 if(typeof window.saveRecord==='function'&&!window.saveRecord.__cvDog){const old=window.saveRecord;window.saveRecord=function(){const a=herd().find(x=>String(x.id)===String(typeof currentId!=='undefined'?currentId:''));if(isDog(a))saveDogFields(a);const r=old.apply(this,arguments);if(isDog(a)){window.dispatchEvent(new Event('cv-dog-changed'));setTimeout(()=>renderFamily(a),0)}return r};window.saveRecord.__cvDog=true}
 }
-install();setTimeout(ensureMenu,300);setInterval(ensureMenu,1500);
+install();
 })();

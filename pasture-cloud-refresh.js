@@ -23,8 +23,10 @@ async function refreshCloudPastures(force=false){
 }
 window.cvRefreshCloudPastures=refreshCloudPastures;
 function wrapOpen(){if(wrapped||typeof window.openPastures!=='function')return false;const original=window.openPastures;window.openPastures=function(){const out=original.apply(this,arguments);setTimeout(()=>refreshCloudPastures(true),80);return out};wrapped=true;return true}
-let tries=0;const t=setInterval(()=>{tries++;wrapOpen();if(window.supabase?.createClient&&localStorage.getItem(FARM_KEY))refreshCloudPastures(false);if((wrapped&&tries>20)||tries>80)clearInterval(t)},500);
-setTimeout(()=>{wrapOpen();refreshCloudPastures(false)},1000);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>refreshCloudPastures(false),400)});
-window.addEventListener('online',()=>setTimeout(()=>refreshCloudPastures(true),500));
+if(window.__cvCloudManualMode)wrapOpen();else{
+  let tries=0;const t=setInterval(()=>{tries++;wrapOpen();if(window.supabase?.createClient&&localStorage.getItem(FARM_KEY))refreshCloudPastures(false);if((wrapped&&tries>20)||tries>80)clearInterval(t)},500);
+  setTimeout(()=>{wrapOpen();refreshCloudPastures(false)},1000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>refreshCloudPastures(false),400)});
+  window.addEventListener('online',()=>setTimeout(()=>refreshCloudPastures(true),500));
+}
 })();

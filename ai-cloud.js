@@ -14,6 +14,6 @@ function installWrappers(){
   const s=window.cloudSyncNow;if(typeof s==='function'&&s!==wrappedSync&&!s.__cvAiCloud){const w=async function(){const out=await s.apply(this,arguments);try{await pushFlags()}catch{}return out};Object.assign(w,s);w.__cvAiCloud=true;wrappedSync=w;window.cloudSyncNow=w}
   const p=window.cloudPullNow;if(typeof p==='function'&&p!==wrappedPull&&!p.__cvAiCloud){const w=async function(){const out=await p.apply(this,arguments);try{await pullFlags()}catch{}return out};Object.assign(w,p);w.__cvAiCloud=true;wrappedPull=w;window.cloudPullNow=w}
 }
-function start(){if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(ok=>{if(ok)setTimeout(pullFlags,1800)});installWrappers();let tries=0;const timer=setInterval(()=>{installWrappers();tries++;if((window.cloudSyncNow?.__cvAiCloud&&window.cloudPullNow?.__cvAiCloud)||tries>=40)clearInterval(timer)},250)}
+function start(){if(window.__cvCloudManualMode){installWrappers();return}if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(ok=>{if(ok)setTimeout(pullFlags,1800)});installWrappers();let tries=0;const timer=setInterval(()=>{installWrappers();tries++;if((window.cloudSyncNow?.__cvAiCloud&&window.cloudPullNow?.__cvAiCloud)||tries>=40)clearInterval(timer)},250)}
 start();
 })();

@@ -27,8 +27,8 @@ window.cvDecoratePastures=decoratePastures;
 function openGuardianDog(){openAdd();setupAnimalOptions();$('aSex').value=DOG;$('addTitle').textContent='Add Livestock Guardian Dog'}
 window.openGuardianDog=openGuardianDog;
 const origCloseAdd=window.closeAdd;if(typeof origCloseAdd==='function')window.closeAdd=function(){const out=origCloseAdd.apply(this,arguments);if($('addTitle'))$('addTitle').textContent='Add Animal';return out};
-const origRender=window.render;if(typeof origRender==='function')window.render=async function(){const out=await origRender.apply(this,arguments);setupAnimalOptions();return out};
-const origPastureRender=window.renderPastureManager;if(typeof origPastureRender==='function')window.renderPastureManager=function(){const out=origPastureRender.apply(this,arguments);decoratePastures();return out};
-const origBulkRender=window.renderBulkSorter;if(typeof origBulkRender==='function')window.renderBulkSorter=function(){const out=origBulkRender.apply(this,arguments);setupAnimalOptions();return out};
-setupAnimalOptions();if(typeof window.render==='function')window.render();
+const origRender=window.render;if(typeof origRender==='function'){const wrappedRender=async function(){const out=await origRender.apply(this,arguments);setupAnimalOptions();return out};Object.assign(wrappedRender,origRender);window.render=wrappedRender}
+const origPastureRender=window.renderPastureManager;if(typeof origPastureRender==='function'){const wrappedPastureRender=function(){const out=origPastureRender.apply(this,arguments);decoratePastures();return out};Object.assign(wrappedPastureRender,origPastureRender);window.renderPastureManager=wrappedPastureRender}
+const origBulkRender=window.renderBulkSorter;if(typeof origBulkRender==='function'){const wrappedBulkRender=function(){const out=origBulkRender.apply(this,arguments);setupAnimalOptions();return out};Object.assign(wrappedBulkRender,origBulkRender);window.renderBulkSorter=wrappedBulkRender}
+setupAnimalOptions();
 })();
