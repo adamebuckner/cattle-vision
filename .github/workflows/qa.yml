@@ -25,6 +25,69 @@ jobs:
             node --check "$file"
           done
 
+      - name: Verify bulk photo sorter can recover after a load failure
+        shell: bash
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+
+          const elements = {
+            pasturePhotoInput: {value: '', click() {}},
+            pastureModal: {classList: {add() {}}},
+          };
+          const alerts = [];
+          const opened = [];
+          const appended = [];
+          let attempts = 0;
+          const document = {
+            getElementById: id => elements[id] || null,
+            querySelector: selector => selector === 'script[data-herd-work]' ? {} : null,
+            querySelectorAll: () => [],
+            createElement: () => ({remove() { this.removed = true; }}),
+            body: {
+              appendChild(script) {
+                appended.push({id: script.id, src: script.src});
+                attempts += 1;
+                if (attempts === 1) return script.onerror();
+                context.window.openBulkSorter = (files, pasture) => opened.push({files, pasture});
+                script.onload();
+              },
+            },
+          };
+          const context = vm.createContext({
+            console, document, localStorage: {getItem: () => '[]', setItem() {}},
+            cattle: [], alert: message => alerts.push(message), confirm: () => true,
+            esc: value => String(value), save() {}, render() {},
+            setTimeout, clearTimeout,
+            $: id => elements[id] || null,
+          });
+          context.window = context;
+          context.location = context.window.location = {hash: ''};
+          context.window.addEventListener = () => {};
+          vm.runInContext(fs.readFileSync('pastures.js', 'utf8'), context, {filename: 'pastures.js'});
+
+          (async () => {
+            const files = [{name: 'cow-1.jpg', type: 'image/jpeg'}, {name: 'cow-2.jpg', type: 'image/jpeg'}];
+            context.startPasturePhotoUpload('North Pasture');
+            const input = {files, value: 'selected'};
+            await context.handlePasturePhotoFiles({target: input});
+            assert.equal(attempts, 1);
+            assert.equal(alerts.length, 1);
+            assert.equal(input.value, '');
+            input.value = 'selected-again';
+            await context.handlePasturePhotoFiles({target: input});
+            assert.equal(attempts, 2);
+            assert.deepEqual(appended.map(item => item.id), ['cvBulkSorterScript', 'cvBulkSorterScript']);
+            assert.match(appended[1].src, /^bulk-sort\.js\?v=8&retry=\d+$/);
+            assert.equal(opened.length, 1);
+            assert.equal(opened[0].pasture, 'North Pasture');
+            assert.equal(opened[0].files.length, 2);
+            console.log('Bulk photo sorter recovered after a simulated first-load failure.');
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+
       - name: Prevent repeating wrapper regressions
         shell: python
         run: |
@@ -123,6 +186,15 @@ jobs:
                            'feed/hay/grain', 'Add Feed / View Costs'):
               if required not in pasture_costs:
                   failures.append(f'pasture-costs.js is missing {required}')
+
+          pastures = pathlib.Path('pastures.js').read_text(encoding='utf-8')
+          for required in ('function ensureBulkSorter()',
+                           'window.cvEnsureBulkSorter=ensureBulkSorter',
+                           "script.src='bulk-sort.js?v=8&retry='",
+                           'timer=setTimeout(',
+                           'await ensureBulkSorter()'):
+              if required not in pastures:
+                  failures.append(f'pastures.js is missing bulk-sorter recovery: {required}')
 
           if failures:
               print('\n'.join(failures))

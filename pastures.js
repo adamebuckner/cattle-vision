@@ -19,8 +19,25 @@ function assignAnimalToPasture(animalId,pastureName){const a=cattle.find(x=>Stri
 function bulkAssignPasture(){const p=$('bulkPastureSelect').value;if(!p)return alert('Choose the pasture you want to move the selected cattle to.');const checks=[...document.querySelectorAll('.pasture-animal-check:checked')];if(!checks.length)return alert('Select at least one animal.');checks.forEach(c=>{const a=cattle.find(x=>String(x.id)===String(c.value));setAnimalPasture(a,p);});save();renderPastureManager(true);alert(`${checks.length} animal${checks.length===1?'':'s'} moved to ${p}.`);}
 function filterPastureAnimals(name){const f=$('pastureSourceFilter');if(f){f.value=name;renderPastureAnimalRows();const list=$('pastureAnimalList');if(list)list.scrollIntoView({behavior:'smooth',block:'start'});}}
 function renderPastureAnimalRows(){const names=pastures.slice().sort((a,b)=>a.name.localeCompare(b.name));const source=$('pastureSourceFilter')?.value||'';let rows=cattle.slice().sort((a,b)=>String(a.tag).localeCompare(String(b.tag),undefined,{numeric:true}));if(source==='__unassigned__')rows=rows.filter(a=>!(a.location||'').trim());else if(source)rows=rows.filter(a=>(a.location||'').toLowerCase()===source.toLowerCase());const animals=$('pastureAnimalList');if(!animals)return;animals.innerHTML=rows.length?rows.map(a=>{const label=a.sex===PASTURE_DOG?'Guardian Dog':a.sex===PASTURE_HORSE?`Horse ${esc(a.tag||'N-T')}`:`Tag ${esc(a.tag||'N-T')}`;return `<label class="pasture-animal-row"><input class="pasture-animal-check" type="checkbox" value="${a.id}"><span><b>${label}</b><small>${esc(a.location||'Unassigned')}</small></span><select onchange="assignAnimalToPasture('${a.id}',this.value)"><option value="">Unassigned</option>${names.map(p=>`<option value="${esc(p.name)}" ${String(a.location||'').toLowerCase()===p.name.toLowerCase()?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`}).join(''):'<div class="empty">No animals match this pasture filter.</div>';}
+let bulkSorterLoadPromise=null;
+function ensureBulkSorter(){
+  if(typeof window.openBulkSorter==='function')return Promise.resolve(true);
+  if(bulkSorterLoadPromise)return bulkSorterLoadPromise;
+  bulkSorterLoadPromise=new Promise(resolve=>{
+    document.getElementById('cvBulkSorterScript')?.remove();
+    const script=document.createElement('script');script.id='cvBulkSorterScript';script.src='bulk-sort.js?v=8&retry='+Date.now();
+    let timer=0,settled=false;
+    const finish=ready=>{if(settled)return;settled=true;clearTimeout(timer);resolve(ready)};
+    script.onload=()=>finish(typeof window.openBulkSorter==='function');
+    script.onerror=()=>{script.remove();finish(false)};
+    timer=setTimeout(()=>{script.remove();finish(false)},12000);
+    document.body.appendChild(script);
+  }).catch(error=>{console.error('Bulk photo sorter could not load.',error);return false}).then(ready=>{if(!ready)bulkSorterLoadPromise=null;return ready});
+  return bulkSorterLoadPromise;
+}
+window.cvEnsureBulkSorter=ensureBulkSorter;
 function startPasturePhotoUpload(name){pasturePhotoTarget=name;const input=$('pasturePhotoInput');if(!input)return;input.value='';input.click();}
-function handlePasturePhotoFiles(e){const files=Array.from(e.target.files||[]);if(!files.length)return;if(typeof openBulkSorter!=='function')return alert('Bulk photo sorter is unavailable.');closePastures();openBulkSorter(files,pasturePhotoTarget);pasturePhotoTarget='';}
+async function handlePasturePhotoFiles(e){const files=Array.from(e.target.files||[]);if(!files.length)return;const ready=await ensureBulkSorter();if(!ready){e.target.value='';return alert('The photo sorter could not load. Your selected photos were not changed. Check the connection and tap Choose Existing Photos again.')}closePastures();window.openBulkSorter(files,pasturePhotoTarget);pasturePhotoTarget='';}
 function pastureCounts(){const map=new Map();for(const a of cattle){const key=String(a.location||'').trim().toLowerCase();if(!key)continue;let v=map.get(key);if(!v){v={total:0,dogs:0,horses:0};map.set(key,v)}v.total++;if(a.sex===PASTURE_DOG)v.dogs++;if(a.sex===PASTURE_HORSE)v.horses++;}return map;}
 function pastureCountText(c){const cattleCount=c.total-c.dogs-c.horses;const parts=[`${cattleCount} cattle`];if(c.dogs)parts.push(`${c.dogs} guardian dog${c.dogs===1?'':'s'}`);if(c.horses)parts.push(`${c.horses} horse${c.horses===1?'':'s'}`);return parts.join(' • ');}
 function renderPastureCounts(){const counts=pastureCounts();document.querySelectorAll('.pasture-card').forEach(card=>{const name=card.dataset.pasture||'';const c=counts.get(name.toLowerCase())||{total:0,dogs:0,horses:0};const span=card.querySelector('.pasture-count');if(span)span.textContent=pastureCountText(c);});if(typeof window.cvDecoratePastures==='function')window.cvDecoratePastures();}
