@@ -59,6 +59,10 @@ jobs:
           if bulk.count('Object.assign(guarded,fn)') < 3 or 'clearInterval(guardTimer)' not in bulk:
               failures.append('bulk-stability.js wrapper guards are not bounded and composable')
 
+          no_tag = pathlib.Path('herd-no-tag.js').read_text(encoding='utf-8')
+          if 'setInterval(update' in no_tag or 'if(total.textContent!==totalText)' not in no_tag:
+              failures.append('herd-no-tag.js can retrigger its own total-count observer')
+
           if failures:
               print('\n'.join(failures))
               sys.exit(1)

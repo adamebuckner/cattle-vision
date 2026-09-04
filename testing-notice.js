@@ -7,9 +7,9 @@ function loadCloud(){if(document.querySelector('script[data-cloud-loader]'))retu
 function loadQa(){if(document.getElementById('cvQaHardeningScript'))return;const s=document.createElement('script');s.id='cvQaHardeningScript';s.src='qa-hardening.js?v=5';document.body.appendChild(s)}
 function loadPastureLibraryLater(){if(document.getElementById('cvPastureLibraryLaterScript'))return;const s=document.createElement('script');s.id='cvPastureLibraryLaterScript';s.src='pasture-library-later.js?v=3';document.body.appendChild(s)}
 function loadPastureCloudRefresh(){if(document.getElementById('cvPastureCloudRefreshScript'))return;const s=document.createElement('script');s.id='cvPastureCloudRefreshScript';s.src='pasture-cloud-refresh.js?v=1';document.body.appendChild(s)}
-function loadNoTagCount(){if(document.getElementById('cvNoTagHerdCountScript'))return;const s=document.createElement('script');s.id='cvNoTagHerdCountScript';s.src='herd-no-tag.js?v=1';document.body.appendChild(s)}
+function loadNoTagCount(){if(document.getElementById('cvNoTagHerdCountScript'))return;const s=document.createElement('script');s.id='cvNoTagHerdCountScript';s.src='herd-no-tag.js?v=2';document.body.appendChild(s)}
 function style(id,href){if(document.getElementById(id))return;const l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href=href;document.head.appendChild(l)}
 function script(id,src){if(document.getElementById(id))return;const s=document.createElement('script');s.id=id;s.src=src;document.body.appendChild(s)}
-function loadRanchCostExtras(){style('cvMileageCostStyle','mileage-costs.css?v=1');script('cvHayMarketPreset','hay-market-preset.js?v=1');script('cvMileageCosts','mileage-costs.js?v=1');script('cvMileageCostCloud','mileage-cost-cloud.js?v=1');const f=document.querySelector('.footer');if(f)f.textContent='Cattle Vision v4.1.1 · Your records. Your operation.'}
+function loadRanchCostExtras(){style('cvMileageCostStyle','mileage-costs.css?v=1');script('cvHayMarketPreset','hay-market-preset.js?v=1');script('cvMileageCosts','mileage-costs.js?v=1');script('cvMileageCostCloud','mileage-cost-cloud.js?v=1');const f=document.querySelector('.footer');if(f)f.textContent='Cattle Vision v4.1.2 · Your records. Your operation.'}
 makeNotice();loadPastureLibraryLater();loadPastureCloudRefresh();loadNoTagCount();loadRanchCostExtras();loadCloud();loadQa();
 })();
