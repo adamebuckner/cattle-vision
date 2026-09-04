@@ -38,10 +38,10 @@ function animalIcon(a){if(a.sex==='Livestock Guardian Dog')return'🐕';if(a.sex
 function coreCattle(){return cattle.filter(a=>!SPECIAL_TYPES.has(a.sex))}
 function loadMoreHerd(){herdLimit+=60;render()}
 window.loadMoreHerd=loadMoreHerd;
-function herdViewLabel(view){return({all:'All Cattle',young:'Young Stock',females:'Females / Cows',sires:'Sires / Bulls'}[view]||'All Cattle')}
-function inHerdView(a){if(herdView==='young')return['Calf','Heifer'].includes(a.sex);if(herdView==='females')return a.sex==='Cow';if(herdView==='sires')return a.sex==='Bull';return true}
+function herdViewLabel(view){return({all:'All Cattle',young:'Young Stock',females:'Females / Cows',sires:'Sires / Bulls',needsCulled:'Needs Culled'}[view]||'All Cattle')}
+function inHerdView(a){if(herdView==='young')return['Calf','Heifer'].includes(a.sex);if(herdView==='females')return a.sex==='Cow';if(herdView==='sires')return a.sex==='Bull';if(herdView==='needsCulled')return a.sex==='Cow'&&a.flag==='Cull';return true}
 function setHerdView(view='all'){
-  herdView=['all','young','females','sires'].includes(view)?view:'all';
+  herdView=['all','young','females','sires','needsCulled'].includes(view)?view:'all';
   herdLimit=60;
   const search=$('search');if(search)search.value='';
   try{localStorage.setItem('cv2-herd-collapsed','0')}catch{}
@@ -52,24 +52,37 @@ function setHerdView(view='all'){
 window.setHerdView=setHerdView;
 function clearHerdView(){setHerdView('all')}
 window.clearHerdView=clearHerdView;
+function toggleNeedsCulled(id,event){
+  event?.stopPropagation();
+  const a=cattle.find(x=>String(x.id)===String(id));if(!a||a.sex!=='Cow')return;
+  if(a.flag==='Cull'){
+    a.flag=a.needsCulledPreviousFlag||'Normal';
+    delete a.needsCulledPreviousFlag;
+  }else{
+    a.needsCulledPreviousFlag=a.flag&&a.flag!=='Normal'?a.flag:'';
+    a.flag='Cull';
+  }
+  save();
+}
+window.toggleNeedsCulled=toggleNeedsCulled;
 function firstPhoto(animalId){return new Promise(resolve=>{if(!db)return resolve('');try{const store=db.transaction('media','readonly').objectStore('media'),idx=store.index('animalId'),cur=idx.openCursor(IDBKeyRange.only(String(animalId)));cur.onsuccess=e=>{const c=e.target.result;if(!c)return resolve('');const v=c.value;if(v?.type==='photo'&&v.data)return resolve(v.data);c.continue()};cur.onerror=()=>resolve('')}catch{return resolve('')}})}
 async function thumbnailMap(rows){const out=new Map();for(let i=0;i<rows.length;i+=10){const vals=await Promise.all(rows.slice(i,i+10).map(async a=>[String(a.id),await firstPhoto(a.id)]));for(const[id,p]of vals)if(p)out.set(id,p);await new Promise(r=>setTimeout(r,0))}return out}
 function duplicatePermanentTags(){const counts=new Map();for(const a of cattle){const k=a?.tag&&a.tag!=='N-T'?String(a.tag).trim().toLowerCase():'';if(k)counts.set(k,(counts.get(k)||0)+1)}return new Set([...counts].filter(([,n])=>n>1).map(([k])=>k))}
 async function render(){
   const seq=++renderSeq,q=$('search')?.value.trim().toLowerCase()||'';
   if(q!==lastHerdQuery){lastHerdQuery=q;herdLimit=60}
-  const core=coreCattle(),counts={all:core.length,young:core.filter(a=>['Calf','Heifer'].includes(a.sex)).length,females:core.filter(a=>a.sex==='Cow').length,sires:core.filter(a=>a.sex==='Bull').length};
-  if($('totalN'))$('totalN').textContent=counts.all;if($('calfN'))$('calfN').textContent=counts.young;if($('cowN'))$('cowN').textContent=counts.females;if($('bullN'))$('bullN').textContent=counts.sires;
+  const core=coreCattle(),counts={all:core.length,young:core.filter(a=>['Calf','Heifer'].includes(a.sex)).length,females:core.filter(a=>a.sex==='Cow').length,sires:core.filter(a=>a.sex==='Bull').length,needsCulled:core.filter(a=>a.sex==='Cow'&&a.flag==='Cull').length};
+  if($('totalN'))$('totalN').textContent=counts.all;if($('calfN'))$('calfN').textContent=counts.young;if($('cowN'))$('cowN').textContent=counts.females;if($('bullN'))$('bullN').textContent=counts.sires;if($('needsCulledN'))$('needsCulledN').textContent=counts.needsCulled;
   window.cvUpdateHerdCollapse?.();window.cvUpdateNoTagHerdCount?.();
   document.querySelectorAll('[data-herd-view]').forEach(card=>{const active=card.dataset.herdView===herdView;card.classList.toggle('active',active);card.setAttribute('aria-pressed',String(active))});
   const herd=$('herd');if(!herd)return;
   const collapsed=localStorage.getItem('cv2-herd-collapsed')!=='0';if(collapsed&&!q){herd.innerHTML='';return}
-  let list=core.filter(inHerdView).filter(a=>[a.tag,a.breed,a.sire,a.dam,a.location,a.notes,a.sex].join(' ').toLowerCase().includes(q));
+  let list=core.filter(inHerdView).filter(a=>[a.tag,a.breed,a.sire,a.dam,a.location,a.notes,a.sex,a.status,a.flag].join(' ').toLowerCase().includes(q));
   const filterNote=herdView==='all'?'':`<div class="herd-filter-note"><b>${esc(herdViewLabel(herdView))}</b> • ${list.length} record${list.length===1?'':'s'}<button type="button" class="softbtn" onclick="clearHerdView()">Show All Cattle</button></div>`;
   if(!list.length){herd.innerHTML=filterNote+'<div class="empty">No cattle match this view.</div>';return}
   const shown=list.slice(0,herdLimit),photos=await thumbnailMap(shown);if(seq!==renderSeq)return;
   const dupes=duplicatePermanentTags();let html=filterNote;
-  for(const a of shown){const ph=photos.get(String(a.id)),icon=animalIcon(a),key=a?.tag&&a.tag!=='N-T'?String(a.tag).trim().toLowerCase():'';html+=`<div class="animal" onclick="openRecord('${String(a.id).replace(/'/g,"\\'")}')">${ph?`<img class="thumb" loading="lazy" src="${ph}">`:`<div class="thumb" style="display:grid;place-items:center;font-size:35px">${icon}</div>`}<div><h3>${icon} Tag ${esc(a.tag||'N-T')}</h3><div class="chips"><span class="chip">${esc(a.sex)}</span>${a.breed?`<span class="chip">${esc(a.breed)}</span>`:''}${a.location?`<span class="chip">📍 ${esc(a.location)}</span>`:''}<span class="chip">${esc(a.status)}</span>${key&&dupes.has(key)?'<span class="chip" style="background:#fff0cf;color:#805600">Duplicate tag — review</span>':''}</div>${a.dam?`<div>Dam: ${esc(a.dam)}</div>`:''}${a.sire?`<div>Sire: ${esc(a.sire)}</div>`:''}${a.notes?`<div class="muted">${esc(a.notes)}</div>`:''}</div><div class="arrow">›</div></div>`}
+  for(const a of shown){const ph=photos.get(String(a.id)),icon=animalIcon(a),key=a?.tag&&a.tag!=='N-T'?String(a.tag).trim().toLowerCase():'',needsCulled=a.sex==='Cow'&&a.flag==='Cull',id=String(a.id).replace(/'/g,"\\'"),tag=esc(a.tag||'N-T');html+=`<div class="animal${needsCulled?' needs-culled':''}" onclick="openRecord('${id}')">${ph?`<img class="thumb" loading="lazy" src="${ph}">`:`<div class="thumb" style="display:grid;place-items:center;font-size:35px">${icon}</div>`}<div><h3>${icon} Tag ${tag}</h3><div class="chips"><span class="chip">${esc(a.sex)}</span>${a.breed?`<span class="chip">${esc(a.breed)}</span>`:''}${a.location?`<span class="chip">📍 ${esc(a.location)}</span>`:''}<span class="chip">${esc(a.status)}</span>${needsCulled?'<span class="chip cull-chip">Needs Culled</span>':''}${key&&dupes.has(key)?'<span class="chip" style="background:#fff0cf;color:#805600">Duplicate tag — review</span>':''}</div>${a.dam?`<div>Dam: ${esc(a.dam)}</div>`:''}${a.sire?`<div>Sire: ${esc(a.sire)}</div>`:''}${a.notes?`<div class="muted">${esc(a.notes)}</div>`:''}</div><div class="animal-actions">${a.sex==='Cow'?`<button type="button" class="needs-culled-btn${needsCulled?' active':''}" aria-label="${needsCulled?'Remove':'Mark'} Tag ${tag} ${needsCulled?'from':'as'} Needs Culled" aria-pressed="${needsCulled}" title="${needsCulled?'Remove from':'Add to'} Needs Culled" onclick="toggleNeedsCulled('${id}',event)"><span aria-hidden="true">✓</span><small>Needs Culled</small></button>`:''}<span class="arrow" aria-hidden="true">›</span></div></div>`}
   if(shown.length<list.length)html+=`<div class="notice" style="text-align:center;margin-top:10px">Showing ${shown.length} of ${list.length} cattle.<br><button type="button" class="softbtn" style="margin-top:8px" onclick="loadMoreHerd()">Load 60 More</button></div>`;
   herd.innerHTML=html;
 }

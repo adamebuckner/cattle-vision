@@ -88,6 +88,89 @@ jobs:
           })().catch(error => { console.error(error); process.exit(1); });
           NODE
 
+      - name: Verify Needs Culled one-tap workflow
+        shell: bash
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+
+          const records = [
+            {id: 'cow-1', tag: '101', sex: 'Cow', flag: 'Watch'},
+            {id: 'bull-1', tag: 'B1', sex: 'Bull', flag: 'Normal'},
+          ];
+          const storage = new Map([
+            ['cv2-cattle', JSON.stringify(records)],
+            ['cv2-herd-collapsed', '1'],
+          ]);
+          const classList = () => ({add() {}, remove() {}, toggle() {}});
+          const element = () => ({
+            value: '', textContent: '', innerHTML: '', dataset: {}, style: {},
+            classList: classList(), setAttribute() {}, scrollIntoView() {},
+          });
+          const elements = {};
+          for (const id of [
+            'photoCamera', 'photoInput', 'videoCamera', 'videoInput',
+            'attachPhoto', 'attachVideo', 'search', 'totalN', 'calfN',
+            'cowN', 'bullN', 'needsCulledN', 'herd', 'myHerdPanel',
+          ]) elements[id] = element();
+          const localStorage = {
+            getItem: key => storage.has(key) ? storage.get(key) : null,
+            setItem: (key, value) => storage.set(key, String(value)),
+            removeItem: key => storage.delete(key),
+          };
+          const context = vm.createContext({
+            console,
+            document: {
+              getElementById: id => elements[id] || null,
+              querySelectorAll: () => [],
+              createElement: () => element(),
+            },
+            localStorage,
+            sessionStorage: {getItem: () => null, setItem() {}, removeItem() {}},
+            indexedDB: {open: () => ({})},
+            crypto: {randomUUID: () => 'generated-id'},
+            alert() {}, confirm: () => true, prompt: () => '',
+            setTimeout: fn => { fn(); return 1; }, clearTimeout() {},
+            Event: class Event { constructor(type) { this.type = type; } },
+            CustomEvent: class CustomEvent {
+              constructor(type, options) { this.type = type; this.detail = options?.detail; }
+            },
+            URL: {createObjectURL: () => 'blob:test', revokeObjectURL() {}},
+            Blob: class Blob {}, FileReader: class FileReader {}, Image: class Image {},
+          });
+          context.window = context;
+          context.window.dispatchEvent = () => {};
+          context.window.addEventListener = () => {};
+
+          vm.runInContext(fs.readFileSync('app-v2.js', 'utf8'), context, {filename: 'app-v2.js'});
+          context.setHerdView('needsCulled');
+          let stopped = 0;
+          context.toggleNeedsCulled('cow-1', {stopPropagation() { stopped += 1; }});
+          let saved = JSON.parse(storage.get('cv2-cattle'));
+          assert.equal(stopped, 1);
+          assert.equal(saved.find(a => a.id === 'cow-1').flag, 'Cull');
+          assert.equal(saved.find(a => a.id === 'cow-1').needsCulledPreviousFlag, 'Watch');
+          assert.equal(saved.find(a => a.id === 'bull-1').flag, 'Normal');
+          assert.equal(elements.needsCulledN.textContent, 1);
+          assert.equal(
+            vm.runInContext("inHerdView(cattle.find(a => a.id === 'cow-1'))", context),
+            true,
+          );
+
+          context.toggleNeedsCulled('cow-1', {stopPropagation() { stopped += 1; }});
+          saved = JSON.parse(storage.get('cv2-cattle'));
+          assert.equal(saved.find(a => a.id === 'cow-1').flag, 'Watch');
+          assert.equal('needsCulledPreviousFlag' in saved.find(a => a.id === 'cow-1'), false);
+          assert.equal(elements.needsCulledN.textContent, 0);
+
+          context.toggleNeedsCulled('bull-1', {stopPropagation() { stopped += 1; }});
+          saved = JSON.parse(storage.get('cv2-cattle'));
+          assert.equal(saved.find(a => a.id === 'bull-1').flag, 'Normal');
+          console.log('Needs Culled toggle, undo, count, filter, and cow-only guard all passed.');
+          NODE
+
       - name: Prevent repeating wrapper regressions
         shell: python
         run: |
@@ -145,12 +228,14 @@ jobs:
           if 'cloud-loader.js' in static_scripts or 'data-cloud-loader' in index_html:
               failures.append('cloud must load only after the user opens Cloud')
           for marker in ("data-herd-view=\"all\"", "data-herd-view=\"young\"",
-                         "data-herd-view=\"females\"", "data-herd-view=\"sires\""):
+                         "data-herd-view=\"females\"", "data-herd-view=\"sires\"",
+                         "data-herd-view=\"needsCulled\""):
               if marker not in index_html:
                   failures.append(f'herd summary filter is missing {marker}')
 
           app = pathlib.Path('app-v2.js').read_text(encoding='utf-8')
           for required in ('function setHerdView(', 'function inHerdView(',
+                           'function toggleNeedsCulled(', "a.flag='Cull'",
                            'render.__cvHardened=true', "pastureCostEvents",
                            "mileageEvents"):
               if required not in app:
