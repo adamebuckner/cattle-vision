@@ -67,6 +67,10 @@ jobs:
           if "localStorage.getItem(DIRTY_KEY)!=='1'" not in cloud_sync or "visibilitychange" in cloud_sync:
               failures.append('cloud-sync.js can start a full backup just because the app opened')
 
+          index_html = pathlib.Path('index.html').read_text(encoding='utf-8')
+          if '__cvSafeMode' not in index_html or "get('safe')==='1'" not in index_html:
+              failures.append('index.html is missing the lightweight iPhone safe-mode gate')
+
           if failures:
               print('\n'.join(failures))
               sys.exit(1)

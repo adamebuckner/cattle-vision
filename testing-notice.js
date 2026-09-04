@@ -10,6 +10,6 @@ function loadPastureCloudRefresh(){if(document.getElementById('cvPastureCloudRef
 function loadNoTagCount(){if(document.getElementById('cvNoTagHerdCountScript'))return;const s=document.createElement('script');s.id='cvNoTagHerdCountScript';s.src='herd-no-tag.js?v=3';document.body.appendChild(s)}
 function style(id,href){if(document.getElementById(id))return;const l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href=href;document.head.appendChild(l)}
 function script(id,src){if(document.getElementById(id))return;const s=document.createElement('script');s.id=id;s.src=src;document.body.appendChild(s)}
-function loadRanchCostExtras(){style('cvMileageCostStyle','mileage-costs.css?v=1');script('cvHayMarketPreset','hay-market-preset.js?v=1');script('cvMileageCosts','mileage-costs.js?v=1');script('cvMileageCostCloud','mileage-cost-cloud.js?v=1');const f=document.querySelector('.footer');if(f)f.textContent='Cattle Vision v4.1.3 · Your records. Your operation.'}
+function loadRanchCostExtras(){style('cvMileageCostStyle','mileage-costs.css?v=1');script('cvHayMarketPreset','hay-market-preset.js?v=1');script('cvMileageCosts','mileage-costs.js?v=1');script('cvMileageCostCloud','mileage-cost-cloud.js?v=1');const f=document.querySelector('.footer');if(f)f.textContent='Cattle Vision v4.1.4 · Your records. Your operation.'}
 makeNotice();loadPastureLibraryLater();loadPastureCloudRefresh();loadNoTagCount();loadRanchCostExtras();loadCloud();loadQa();
 })();
