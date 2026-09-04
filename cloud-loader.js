@@ -15,14 +15,14 @@ function installSafariStorageFix(){if(window.__cvSafariStorageFixInstalled)retur
 function loadScript(id,src){if(document.getElementById(id))return;const s=document.createElement('script');s.id=id;s.src=src;s.onerror=()=>console.error(`Cattle Vision could not load ${src}`);document.body.appendChild(s)}
 function loadStyle(id,href){if(document.getElementById(id))return;const l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href=href;l.onerror=()=>console.error(`Cattle Vision could not load ${href}`);document.head.appendChild(l)}
 function loadSecurity(){loadScript('cvAccountSecurityScript','account-security.js?v=3')}
-function loadAutoHook(){loadScript('cvCloudAutoHook','cloud-auto-hook.js?v=2')}
+function loadAutoHook(){loadScript('cvCloudAutoHook','cloud-auto-hook.js?v=3')}
 function loadRecovery(){loadScript('cvPasswordResetScript','password-reset.js?v=3')}
-function loadIntegrity(){loadScript('cvCloudIntegrityScript','cloud-integrity.js?v=2')}
-function loadTombstones(){loadScript('cvCloudTombstonesScript','cloud-tombstones.js?v=2')}
+function loadIntegrity(){loadScript('cvCloudIntegrityScript','cloud-integrity.js?v=3')}
+function loadTombstones(){loadScript('cvCloudTombstonesScript','cloud-tombstones.js?v=3')}
 function loadEquine(){
   loadStyle('cvEquineStyle','equine-records.css?v=1');
   loadScript('cvEquineRecordsScript','equine-records.js?v=1');
-  loadScript('cvEquineCloudScript','equine-cloud.js?v=1');
+  loadScript('cvEquineCloudScript','equine-cloud.js?v=2');
 }
 function loadCloud(){
   installSafariStorageFix();

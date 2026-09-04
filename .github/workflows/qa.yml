@@ -25,6 +25,45 @@ jobs:
             node --check "$file"
           done
 
+      - name: Prevent repeating wrapper regressions
+        shell: python
+        run: |
+          import pathlib, sys
+
+          unbounded = {
+              'ai-cattle.js': 'setInterval(wrap,',
+              'guardian-statuses.js': 'setInterval(install,',
+              'guardian-vet.js': 'setInterval(wrap,',
+              'guardian-litter-vet.js': 'setInterval(wrap,',
+              'guardian-litter-refresh.js': 'setInterval(install,',
+          }
+          failures = []
+          for filename, pattern in unbounded.items():
+              if pattern in pathlib.Path(filename).read_text(encoding='utf-8'):
+                  failures.append(f'{filename} still polls its UI wrapper')
+
+          cloud_wrappers = (
+              'ai-cloud.js',
+              'guardian-dog-cloud.js',
+              'guardian-vet-cloud.js',
+              'guardian-litter-vet-cloud.js',
+              'equine-cloud.js',
+          )
+          for filename in cloud_wrappers:
+              text = pathlib.Path(filename).read_text(encoding='utf-8')
+              for required in ('Object.assign(w,s)', 'Object.assign(w,p)', 'clearInterval(timer)'):
+                  if required not in text:
+                      failures.append(f'{filename} is missing {required}')
+
+          bulk = pathlib.Path('bulk-stability.js').read_text(encoding='utf-8')
+          if bulk.count('Object.assign(guarded,fn)') < 3 or 'clearInterval(guardTimer)' not in bulk:
+              failures.append('bulk-stability.js wrapper guards are not bounded and composable')
+
+          if failures:
+              print('\n'.join(failures))
+              sys.exit(1)
+          print('UI wrappers are one-time; cloud wrapper retries are bounded and composable.')
+
       - name: Check local and dynamically referenced assets
         shell: python
         run: |

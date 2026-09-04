@@ -32,5 +32,8 @@ function wrap(){
   if(typeof window.openRecord==='function'&&!window.openRecord.__cvAi){const old=window.openRecord;window.openRecord=async function(id){const r=await old.apply(this,arguments);injectFields();const a=(typeof cattle!=='undefined'?cattle:[]).find(x=>String(x.id)===String(id));if(el('rDoubleTagged'))el('rDoubleTagged').checked=!!a?.doubleTagged;return r};window.openRecord.__cvAi=true}
   if(typeof window.saveRecord==='function'&&!window.saveRecord.__cvAi){const old=window.saveRecord;window.saveRecord=function(){const a=(typeof cattle!=='undefined'?cattle:[]).find(x=>String(x.id)===String(typeof currentId!=='undefined'?currentId:''));const newTag=el('rTag')?.value.trim()||'';const duplicate=newTag&&newTag!=='N-T'&&(typeof cattle!=='undefined'?cattle:[]).some(x=>String(x.id)!==String(a?.id)&&x.tag&&x.tag!=='N-T'&&String(x.tag).toLowerCase()===newTag.toLowerCase());if(a&&!duplicate)a.doubleTagged=!!el('rDoubleTagged')?.checked;const r=old.apply(this,arguments);if(a&&!duplicate)window.dispatchEvent(new Event('cv-ai-changed'));return r};window.saveRecord.__cvAi=true}
 }
-wrap();setInterval(wrap,800);
+  // All core cattle functions already exist when this script loads. Re-running
+  // wrap on a timer caused other feature wrappers to be wrapped again forever,
+  // eventually making taps unresponsive on mobile devices.
+  wrap();
 })();

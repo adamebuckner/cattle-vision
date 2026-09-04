@@ -11,6 +11,7 @@ function install(){
     }catch(e){console.error('Cattle Vision cloud change trigger failed',e)}
     return result;
   };
+  Object.assign(window.save,original);
   window.__cvCloudSaveHookInstalled=true;
   return true;
 }

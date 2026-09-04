@@ -51,5 +51,7 @@ window.cvRenderDogVetPanel=renderVetPanel;
 async function viewVetReceipt(animalId,mediaId){let ms=[];try{ms=typeof getMedia==='function'?await getMedia(animalId):[]}catch{}const m=ms.find(x=>String(x.id)===String(mediaId));if(!m?.data)return alert('That receipt image is not available on this device yet. Run Cloud Restore / Merge to retrieve backed-up media.');let modal=el('vetReceiptViewer');if(!modal){modal=document.createElement('div');modal.id='vetReceiptViewer';modal.className='modal hidden';modal.innerHTML=`<div class="sheet" style="max-width:720px"><div class="row"><h2>Vet Receipt</h2><button class="softbtn" onclick="vetReceiptViewer.classList.add('hidden')">Close</button></div><img id="vetReceiptViewerImg" class="vet-full-receipt" alt="Vet receipt"></div>`;document.body.appendChild(modal)}el('vetReceiptViewerImg').src=m.data;modal.classList.remove('hidden')}
 window.viewVetReceipt=viewVetReceipt;
 function wrap(){injectModal();injectPanel();for(const a of herd())if(isDog(a))ensureArrays(a);if(typeof window.openRecord==='function'&&!window.openRecord.__cvVet){const old=window.openRecord;window.openRecord=async function(id){const out=await old.apply(this,arguments),a=herd().find(x=>String(x.id)===String(id));if(a&&isDog(a))await renderVetPanel(a);else el('dogVetPanel')?.classList.add('hidden');return out};window.openRecord.__cvVet=true}}
-wrap();setInterval(wrap,1000);
+// The animal record handler is ready before this script loads. Do not poll and
+// repeatedly wrap it; that creates an ever-growing call chain on iPhone.
+wrap();
 })();

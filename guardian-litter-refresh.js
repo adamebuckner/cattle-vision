@@ -9,5 +9,7 @@ function install(){
   if(typeof window.saveRecord==='function'&&!window.saveRecord.__cvLitterRefresh){const old=window.saveRecord;window.saveRecord=function(){const a=currentDog(),r=old.apply(this,arguments);redraw(a);return r};window.saveRecord.__cvLitterRefresh=true}
   if(typeof window.savePuppy==='function'&&!window.savePuppy.__cvLitterRefresh){const old=window.savePuppy;window.savePuppy=function(){const a=currentDog(),r=old.apply(this,arguments);redraw(a);return r};window.savePuppy.__cvLitterRefresh=true}
 }
-install();setInterval(install,1000);
+// Dependencies are loaded synchronously before this file, so a permanent
+// polling loop is unnecessary and makes wrapper chains grow without bound.
+install();
 })();

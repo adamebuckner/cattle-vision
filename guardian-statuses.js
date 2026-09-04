@@ -39,5 +39,7 @@ function install(){ensure();
   if(typeof window.savePuppy==='function'&&!window.savePuppy.__cvMultiStatus){const old=window.savePuppy;window.savePuppy=function(){const before=new Set(herd().map(a=>String(a.id))),r=old.apply(this,arguments),added=herd().find(a=>isDog(a)&&!before.has(String(a.id)));if(added){saveStatuses(added,['Puppy','Training','Working']);if(typeof save==='function')save();window.dispatchEvent(new Event('cv-dog-changed'))}return r};window.savePuppy.__cvMultiStatus=true}
   if(typeof window.openGuardianRegistry==='function'&&!window.openGuardianRegistry.__cvMultiStatus){const old=window.openGuardianRegistry;window.openGuardianRegistry=function(){const r=old.apply(this,arguments);setTimeout(decorateRegistry,0);return r};window.openGuardianRegistry.__cvMultiStatus=true}
 }
-install();setInterval(install,900);
+// The guardian-dog form and handlers load before this file. Installing once
+// prevents wrapper chains from growing every second while the app is open.
+install();
 })();

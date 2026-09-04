@@ -96,6 +96,7 @@ function ensureChangedGuard(){
     }
     return fn.apply(this,arguments);
   };
+  Object.assign(guarded,fn);
   guarded.__cvBulkChangedGuard=true;
   wrappedChangedFn=guarded;
   window.cvCloudChanged=guarded;
@@ -114,6 +115,7 @@ function ensureCloudGuard(){
     }
     return fn.apply(this,arguments);
   };
+  Object.assign(guarded,fn);
   guarded.__cvBulkCloudGuard=true;
   wrappedCloudFn=guarded;
   window.cloudSyncNow=guarded;
@@ -136,6 +138,7 @@ function ensurePhotoMemoryGuard(){
     }catch{}
     return out;
   };
+  Object.assign(guarded,fn);
   guarded.__cvBulkMemoryGuard=true;
   wrappedSavePhotoFn=guarded;
   window.saveCurrentBulkPhoto=guarded;
@@ -175,11 +178,18 @@ if(typeof window.closeBulkSorter==='function'&&!window.closeBulkSorter.__cvBulkS
   window.closeBulkSorter=guardedClose;
 }
 
-// Cloud and QA wrappers load asynchronously. Keep our field-priority guards outermost.
-setInterval(()=>{
+// Cloud and QA wrappers load asynchronously. Retry only until each guard has
+// landed, then stop polling so an idle phone stays idle.
+let guardChecks=0;
+const guardTimer=setInterval(()=>{
   ensureChangedGuard();
   ensureCloudGuard();
   ensurePhotoMemoryGuard();
+  guardChecks++;
+  const ready=window.cvCloudChanged?.__cvBulkChangedGuard&&
+    window.cloudSyncNow?.__cvBulkCloudGuard&&
+    window.saveCurrentBulkPhoto?.__cvBulkMemoryGuard;
+  if(ready||guardChecks>=120)clearInterval(guardTimer);
 },500);
 
 if(inCooldown())scheduleIdleCloud();

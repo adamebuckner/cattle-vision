@@ -11,9 +11,9 @@ async function pullFlags(){if(!(await ready()))return;const farmId=localStorage.
 function schedulePush(delay=5200){clearTimeout(timer);timer=setTimeout(pushFlags,delay)}
 window.addEventListener('cv-ai-changed',()=>schedulePush());
 function installWrappers(){
-  const s=window.cloudSyncNow;if(typeof s==='function'&&s!==wrappedSync&&!s.__cvAiCloud){const w=async function(){const out=await s.apply(this,arguments);try{await pushFlags()}catch{}return out};w.__cvAiCloud=true;wrappedSync=w;window.cloudSyncNow=w}
-  const p=window.cloudPullNow;if(typeof p==='function'&&p!==wrappedPull&&!p.__cvAiCloud){const w=async function(){const out=await p.apply(this,arguments);try{await pullFlags()}catch{}return out};w.__cvAiCloud=true;wrappedPull=w;window.cloudPullNow=w}
+  const s=window.cloudSyncNow;if(typeof s==='function'&&s!==wrappedSync&&!s.__cvAiCloud){const w=async function(){const out=await s.apply(this,arguments);try{await pushFlags()}catch{}return out};Object.assign(w,s);w.__cvAiCloud=true;wrappedSync=w;window.cloudSyncNow=w}
+  const p=window.cloudPullNow;if(typeof p==='function'&&p!==wrappedPull&&!p.__cvAiCloud){const w=async function(){const out=await p.apply(this,arguments);try{await pullFlags()}catch{}return out};Object.assign(w,p);w.__cvAiCloud=true;wrappedPull=w;window.cloudPullNow=w}
 }
-function start(){if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(ok=>{if(ok)setTimeout(pullFlags,1800)});installWrappers();setInterval(installWrappers,900)}
+function start(){if(!window.supabase?.createClient)return setTimeout(start,300);ready().then(ok=>{if(ok)setTimeout(pullFlags,1800)});installWrappers();let tries=0;const timer=setInterval(()=>{installWrappers();tries++;if((window.cloudSyncNow?.__cvAiCloud&&window.cloudPullNow?.__cvAiCloud)||tries>=40)clearInterval(timer)},250)}
 start();
 })();
