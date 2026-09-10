@@ -105,9 +105,14 @@ function decorateLedger(){
   });
 }
 function decorateAll(){ensureStyle();decorateHerd();decorateAnimalRecord();decorateDashboard();decoratePastureCards();decoratePastureModal();decorateLedger()}
+function runAfter(out,after){
+  if(out&&typeof out.then==='function')return out.then(value=>{try{after()}catch(e){console.warn('Feed YTD display refresh failed',e)}return value});
+  try{after()}catch(e){console.warn('Feed YTD display refresh failed',e)}
+  return out;
+}
 function wrap(name,after){
   const fn=window[name];if(typeof fn!=='function'||fn.__cvFeedYtd)return;
-  const wrapped=async function(){const out=await fn.apply(this,arguments);try{after()}catch(e){console.warn('Feed YTD display refresh failed',e)}return out};
+  const wrapped=function(){return runAfter(fn.apply(this,arguments),after)};
   Object.assign(wrapped,fn);wrapped.__cvFeedYtd=true;window[name]=wrapped;
 }
 wrap('render',()=>setTimeout(decorateHerd,0));
