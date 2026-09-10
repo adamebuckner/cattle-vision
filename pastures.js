@@ -20,6 +20,68 @@ function bulkAssignPasture(){const p=$('bulkPastureSelect').value;if(!p)return a
 function filterPastureAnimals(name){const f=$('pastureSourceFilter');if(f){f.value=name;renderPastureAnimalRows();const list=$('pastureAnimalList');if(list)list.scrollIntoView({behavior:'smooth',block:'start'});}}
 function renderPastureAnimalRows(){const names=pastures.slice().sort((a,b)=>a.name.localeCompare(b.name));const source=$('pastureSourceFilter')?.value||'';let rows=cattle.slice().sort((a,b)=>String(a.tag).localeCompare(String(b.tag),undefined,{numeric:true}));if(source==='__unassigned__')rows=rows.filter(a=>!(a.location||'').trim());else if(source)rows=rows.filter(a=>(a.location||'').toLowerCase()===source.toLowerCase());const animals=$('pastureAnimalList');if(!animals)return;animals.innerHTML=rows.length?rows.map(a=>{const label=a.sex===PASTURE_DOG?'Guardian Dog':a.sex===PASTURE_HORSE?`Horse ${esc(a.tag||'N-T')}`:`Tag ${esc(a.tag||'N-T')}`;return `<label class="pasture-animal-row"><input class="pasture-animal-check" type="checkbox" value="${a.id}"><span><b>${label}</b><small>${esc(a.location||'Unassigned')}</small></span><select onchange="assignAnimalToPasture('${a.id}',this.value)"><option value="">Unassigned</option>${names.map(p=>`<option value="${esc(p.name)}" ${String(a.location||'').toLowerCase()===p.name.toLowerCase()?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`}).join(''):'<div class="empty">No animals match this pasture filter.</div>';}
 let bulkSorterLoadPromise=null;
+function hardenRecoveredBulkSorter(){
+  // If bulk-sort.js had to be reloaded after an initial network/cache failure, its
+  // fresh global functions replace wrappers installed earlier in page startup.
+  // Re-establish the critical field-work flags and a rollback guard before use.
+  try{if(typeof window.cvRefreshQaHardening==='function')window.cvRefreshQaHardening()}catch(error){console.warn('QA bulk hardening refresh did not complete',error)}
+  try{if(typeof window.cvRefreshBulkStability==='function')window.cvRefreshBulkStability()}catch(error){console.warn('Bulk stability refresh did not complete',error)}
+
+  if(typeof window.openBulkSorter==='function'&&!window.openBulkSorter.__cvRecoveredSessionGuard&&!window.openBulkSorter.__cvBulkSessionGuard){
+    const open=window.openBulkSorter;
+    const guardedOpen=function(){
+      window.__cvBulkImportActive=true;
+      window.__cvBulkHadSaves=false;
+      try{return open.apply(this,arguments)}catch(error){window.__cvBulkImportActive=false;throw error}
+    };
+    Object.assign(guardedOpen,open);
+    guardedOpen.__cvRecoveredSessionGuard=true;
+    window.openBulkSorter=guardedOpen;
+  }
+
+  if(typeof window.closeBulkSorter==='function'&&!window.closeBulkSorter.__cvRecoveredSessionGuard&&!window.closeBulkSorter.__cvBulkSessionGuard){
+    const close=window.closeBulkSorter;
+    const guardedClose=function(){
+      try{return close.apply(this,arguments)}finally{
+        window.__cvBulkImportActive=false;
+        window.__cvBulkHadSaves=false;
+      }
+    };
+    Object.assign(guardedClose,close);
+    guardedClose.__cvRecoveredSessionGuard=true;
+    window.closeBulkSorter=guardedClose;
+  }
+
+  if(typeof window.saveCurrentBulkPhoto==='function'&&!window.saveCurrentBulkPhoto.__cvRecoveredRollbackGuard){
+    const saveOne=window.saveCurrentBulkPhoto;
+    const guardedSave=async function(){
+      let before='[]';
+      try{before=JSON.stringify(cattle)}catch{}
+      const beforeSaved=typeof bulkSaved==='number'?bulkSaved:0;
+      const beforeIndex=typeof bulkIndex==='number'?bulkIndex:0;
+      let result,thrown=null;
+      try{result=await saveOne.apply(this,arguments)}catch(error){thrown=error}
+      const progressed=(typeof bulkSaved==='number'&&bulkSaved>beforeSaved)||(typeof bulkIndex==='number'&&bulkIndex>beforeIndex);
+      if(!progressed){
+        try{
+          const after=JSON.stringify(cattle);
+          if(after!==before){
+            cattle=JSON.parse(before).map(a=>typeof norm==='function'?norm(a):a);
+            localStorage.setItem('cv2-cattle',JSON.stringify(cattle));
+            if(typeof window.render==='function')window.render();
+          }
+        }catch(error){console.error('Recovered bulk sorter rollback could not restore the prior herd snapshot',error)}
+      }
+      if(thrown)throw thrown;
+      return result;
+    };
+    Object.assign(guardedSave,saveOne);
+    guardedSave.__cvRecoveredRollbackGuard=true;
+    window.saveCurrentBulkPhoto=guardedSave;
+  }
+
+  try{window.dispatchEvent(new Event('cv-bulk-sorter-ready'))}catch{}
+}
 function ensureBulkSorter(){
   if(typeof window.openBulkSorter==='function')return Promise.resolve(true);
   if(bulkSorterLoadPromise)return bulkSorterLoadPromise;
@@ -28,7 +90,7 @@ function ensureBulkSorter(){
     const script=document.createElement('script');script.id='cvBulkSorterScript';script.src='bulk-sort.js?v=8&retry='+Date.now();
     let timer=0,settled=false;
     const finish=ready=>{if(settled)return;settled=true;clearTimeout(timer);resolve(ready)};
-    script.onload=()=>finish(typeof window.openBulkSorter==='function');
+    script.onload=()=>{const ready=typeof window.openBulkSorter==='function';if(ready)hardenRecoveredBulkSorter();finish(ready)};
     script.onerror=()=>{script.remove();finish(false)};
     timer=setTimeout(()=>{script.remove();finish(false)},12000);
     document.body.appendChild(script);
