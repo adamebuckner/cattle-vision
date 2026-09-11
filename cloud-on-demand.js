@@ -22,9 +22,20 @@ function script(id,src){return new Promise((resolve,reject)=>{const old=el(id);i
 function button(){let b=el('cloudMobileBtn');if(!b){b=document.createElement('button');b.id='cloudMobileBtn';b.className='cloud-mobile-btn';b.type='button';b.setAttribute('aria-label','Open Cattle Vision Cloud');document.querySelector('.topbar')?.appendChild(b)}b.textContent='☁ Cloud';b.disabled=false;b.onclick=()=>openCloudOnDemand();return b}
 function waitForCore(){return new Promise((resolve,reject)=>{if(window.__cvCloudCoreReady&&typeof window.openCloud==='function'&&window.openCloud!==openCloudStub)return resolve();let checks=0;const timer=setInterval(()=>{checks++;if(window.__cvCloudCoreReady&&typeof window.openCloud==='function'&&window.openCloud!==openCloudStub){clearInterval(timer);resolve()}else if(checks>=240){clearInterval(timer);reject(new Error('Cloud took too long to become ready'))}},125)})}
 async function runExtraTasks(mode){for(const task of(window.__cvCloudExtraTasks||[])){try{await task[mode]?.()}catch(e){console.warn(`${task.name||'Cloud extension'} ${mode} will retry later`,e)}}}
+async function refreshFieldCounts(){
+  try{
+    if(typeof window.cvRefreshFieldHeadcounts!=='function'){
+      document.getElementById('cvDashboardCounts')?.remove();
+      await script('cvDashboardCounts','dashboard-counts.js?fresh='+Date.now());
+    }
+    if(typeof window.cvRefreshFieldHeadcounts==='function')await window.cvRefreshFieldHeadcounts();
+    window.renderPastureCounts?.();
+    if(document.getElementById('pastureModal')&&!document.getElementById('pastureModal').classList.contains('hidden'))window.renderPastureManager?.(false);
+  }catch(e){console.warn('Field headcounts could not refresh after cloud restore',e)}
+}
 function installExtraTasks(){
-  const sync=window.cloudSyncNow;if(typeof sync==='function'&&!sync.__cvExtraTasks){const wrapped=async function(){const result=await sync.apply(this,arguments);if(result?.ok)await runExtraTasks('push');return result};Object.assign(wrapped,sync);wrapped.__cvExtraTasks=true;window.cloudSyncNow=wrapped}
-  const pull=window.cloudPullNow;if(typeof pull==='function'&&!pull.__cvExtraTasks){const wrapped=async function(){const result=await pull.apply(this,arguments);if(result?.ok)await runExtraTasks('pull');return result};Object.assign(wrapped,pull);wrapped.__cvExtraTasks=true;window.cloudPullNow=wrapped}
+  const sync=window.cloudSyncNow;if(typeof sync==='function'&&!sync.__cvExtraTasks){const wrapped=async function(){const result=await sync.apply(this,arguments);if(result?.ok){await runExtraTasks('push');await refreshFieldCounts()}return result};Object.assign(wrapped,sync);wrapped.__cvExtraTasks=true;window.cloudSyncNow=wrapped}
+  const pull=window.cloudPullNow;if(typeof pull==='function'&&!pull.__cvExtraTasks){const wrapped=async function(){const result=await pull.apply(this,arguments);if(result?.ok){await runExtraTasks('pull');await refreshFieldCounts()}return result};Object.assign(wrapped,pull);wrapped.__cvExtraTasks=true;window.cloudPullNow=wrapped}
 }
 async function loadCloud(){
   if(realOpen)return realOpen;
@@ -33,6 +44,7 @@ async function loadCloud(){
     await script('cvCloudOnDemandLoader','cloud-loader.js?v=18');
     await waitForCore();const open=window.openCloud;
     for(const[id,src]of extensions)await script(id,src);
+    await refreshFieldCounts();
     installExtraTasks();realOpen=open;
     window.dispatchEvent(new Event('cv-cloud-ready'));
     b.disabled=false;b.textContent='☁ Cloud';b.onclick=()=>realOpen();
