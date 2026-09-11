@@ -40,7 +40,7 @@ function pastureClassCounts(){
   return out;
 }
 function countText(c){
-  const parts=[];if(c.cows)parts.push(`${c.cows} cow${c.cows===1?'':'s'}`);if(c.calves)parts.push(`${c.calves} calf${c.calves===1?'':'ves'}`);if(c.heifers)parts.push(`${c.heifers} heifer${c.heifers===1?'':'s'}`);if(c.bulls)parts.push(`${c.bulls} bull${c.bulls===1?'':'s'}`);if(c.steers)parts.push(`${c.steers} steer${c.steers===1?'':'s'}`);if(!parts.length)parts.push(`${c.total||0} cattle`);if(c.dogs)parts.push(`${c.dogs} guardian dog${c.dogs===1?'':'s'}`);if(c.horses)parts.push(`${c.horses} horse${c.horses===1?'':'s'}`);return parts.join(' • ')
+  const parts=[];if(c.cows)parts.push(`${c.cows} cow${c.cows===1?'':'s'}`);if(c.calves)parts.push(`${c.calves} ${c.calves===1?'calf':'calves'}`);if(c.heifers)parts.push(`${c.heifers} heifer${c.heifers===1?'':'s'}`);if(c.bulls)parts.push(`${c.bulls} bull${c.bulls===1?'':'s'}`);if(c.steers)parts.push(`${c.steers} steer${c.steers===1?'':'s'}`);if(!parts.length)parts.push(`${c.total||0} cattle`);if(c.dogs)parts.push(`${c.dogs} guardian dog${c.dogs===1?'':'s'}`);if(c.horses)parts.push(`${c.horses} horse${c.horses===1?'':'s'}`);return parts.join(' • ')
 }
 function installPastureCounts(){
   window.cvFieldHeadcounts=cloudHeadcounts.slice();
