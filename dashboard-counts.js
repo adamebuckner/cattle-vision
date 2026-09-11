@@ -3,60 +3,11 @@ const SPECIAL=new Set(['Livestock Guardian Dog','Horse']);
 const CLASS_MAP={Cows:'Cow',Cow:'Cow',Calves:'Calf',Calf:'Calf',Heifers:'Heifer',Heifer:'Heifer',Bulls:'Bull',Bull:'Bull',Steers:'Steer',Steer:'Steer'};
 let cloudHeadcounts=[];
 function key(s){return String(s||'').trim().toLowerCase()}
-function prepareCards(){
-  const stats=document.querySelector('.stats');
-  const young=document.querySelector('[data-herd-view="young"]');
-  if(!stats||!young)return;
-  young.querySelector('.ico')&&(young.querySelector('.ico').textContent='CALVES');
-  young.querySelector('strong')&&(young.querySelector('strong').textContent='Calves');
-  young.querySelector('small')&&(young.querySelector('small').textContent='Current calf count • tap for young stock');
-  if(!document.getElementById('heiferN')){
-    const h=young.cloneNode(true);h.removeAttribute('data-herd-view');h.setAttribute('aria-pressed','false');h.onclick=()=>window.setHerdView?.('young');
-    const ico=h.querySelector('.ico');if(ico)ico.textContent='HEIFERS';
-    const n=h.querySelector('b');if(n){n.id='heiferN';n.textContent='0'}
-    const strong=h.querySelector('strong');if(strong)strong.textContent='Heifers';
-    const small=h.querySelector('small');if(small)small.textContent='Current heifer count • tap for young stock';
-    young.after(h);
-  }
-}
-function latestOverrides(){
-  const latest=new Map();
-  for(const e of cloudHeadcounts){
-    const type=CLASS_MAP[e.animal_class];if(!type||!Number.isFinite(Number(e.animal_count)))continue;
-    const pasture=key(e.pasture_id||e.pasture_name||e.pasture||'unassigned');
-    const k=pasture+'|'+type;
-    if(!latest.has(k))latest.set(k,Number(e.animal_count));
-  }
-  return latest;
-}
-function effectiveCounts(){
-  const animals=(Array.isArray(window.cattle)?window.cattle:(typeof cattle!=='undefined'&&Array.isArray(cattle)?cattle:[])).filter(a=>!SPECIAL.has(a.sex));
-  const by=new Map();
-  for(const a of animals){const type=a.sex||'Cow',pasture=key(a.current_pasture_id||a.location||'unassigned'),k=pasture+'|'+type;by.set(k,(by.get(k)||0)+1)}
-  for(const [k,n] of latestOverrides())by.set(k,n);
-  const out={Cow:0,Bull:0,Calf:0,Heifer:0,Steer:0,total:0};
-  for(const [k,n] of by){const type=k.slice(k.lastIndexOf('|')+1);out[type]=(out[type]||0)+n;out.total+=n}
-  return out;
-}
-function paint(){prepareCards();const c=effectiveCounts();
-  const set=(id,n)=>{const e=document.getElementById(id);if(e)e.textContent=String(n||0)};
-  set('totalN',c.total);set('calfN',c.Calf);set('heiferN',c.Heifer);set('cowN',c.Cow);set('bullN',c.Bull);
-}
-async function loadCloud(){
-  try{
-    if(!window.supabase?.createClient)return paint();
-    const farmId=localStorage.getItem('cv2-cloud-farm-id');if(!farmId)return paint();
-    const client=window.supabase.createClient('https://rtyiqggxruwejqqyqtmv.supabase.co','sb_publishable_BxkgX1XJz8o_PsTb_LcVDQ_7DR6oHOk',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-    const {data:session}=await client.auth.getSession();if(!session?.session)return paint();
-    const {data,error}=await client.from('herd_work_events').select('pasture_id,animal_class,animal_count,event_date,created_at,description').eq('farm_id',farmId).ilike('description','%field headcount%').order('event_date',{ascending:false}).order('created_at',{ascending:false});
-    if(!error&&Array.isArray(data))cloudHeadcounts=data;
-  }catch(e){console.warn('Dashboard headcounts could not refresh from cloud.',e)}
-  paint();
-}
-function install(){prepareCards();paint();loadCloud();
-  window.addEventListener('cv-local-change',()=>setTimeout(loadCloud,250));
-  window.addEventListener('online',loadCloud);
-  const old=window.render;if(typeof old==='function'&&!old.__cvDashboardCounts){const wrapped=async function(){const r=await old.apply(this,arguments);paint();return r};Object.assign(wrapped,old);wrapped.__cvDashboardCounts=true;window.render=wrapped}
-}
+function prepareCards(){const stats=document.querySelector('.stats'),young=document.querySelector('[data-herd-view="young"]');if(!stats||!young)return;young.querySelector('.ico')&&(young.querySelector('.ico').textContent='CALVES');young.querySelector('strong')&&(young.querySelector('strong').textContent='Calves');young.querySelector('small')&&(young.querySelector('small').textContent='Current calf count • tap for young stock');if(!document.getElementById('heiferN')){const h=young.cloneNode(true);h.removeAttribute('data-herd-view');h.setAttribute('aria-pressed','false');h.onclick=()=>window.setHerdView?.('young');const ico=h.querySelector('.ico');if(ico)ico.textContent='HEIFERS';const n=h.querySelector('b');if(n){n.id='heiferN';n.textContent='0'}const strong=h.querySelector('strong');if(strong)strong.textContent='Heifers';const small=h.querySelector('small');if(small)small.textContent='Current heifer count • tap for young stock';young.after(h)}}
+function latestOverrides(){const latest=new Map();for(const e of cloudHeadcounts){const type=CLASS_MAP[e.animal_class];if(!type||!Number.isFinite(Number(e.animal_count)))continue;const pasture=key(e.pasture_name||e.pasture||e.pasture_id||'unassigned'),k=pasture+'|'+type;if(!latest.has(k))latest.set(k,Number(e.animal_count))}return latest}
+function effectiveCounts(){const animals=(Array.isArray(window.cattle)?window.cattle:(typeof cattle!=='undefined'&&Array.isArray(cattle)?cattle:[])).filter(a=>!SPECIAL.has(a.sex)),by=new Map();for(const a of animals){const type=a.sex||'Cow',pasture=key(a.location||'unassigned'),k=pasture+'|'+type;by.set(k,(by.get(k)||0)+1)}for(const [k,n] of latestOverrides())by.set(k,n);const out={Cow:0,Bull:0,Calf:0,Heifer:0,Steer:0,total:0};for(const [k,n] of by){const type=k.slice(k.lastIndexOf('|')+1);out[type]=(out[type]||0)+n;out.total+=n}return out}
+function paint(){prepareCards();const c=effectiveCounts(),set=(id,n)=>{const e=document.getElementById(id);if(e)e.textContent=String(n||0)};set('totalN',c.total);set('calfN',c.Calf);set('heiferN',c.Heifer);set('cowN',c.Cow);set('bullN',c.Bull)}
+async function loadCloud(){try{if(!window.supabase?.createClient)return paint();const farmId=localStorage.getItem('cv2-cloud-farm-id');if(!farmId)return paint();const client=window.supabase.createClient('https://rtyiqggxruwejqqyqtmv.supabase.co','sb_publishable_BxkgX1XJz8o_PsTb_LcVDQ_7DR6oHOk',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});const {data:session}=await client.auth.getSession();if(!session?.session)return paint();const [{data:events,error},{data:pastureRows}]=await Promise.all([client.from('herd_work_events').select('pasture_id,animal_class,animal_count,event_date,created_at,description').eq('farm_id',farmId).ilike('description','%field headcount%').order('event_date',{ascending:false}).order('created_at',{ascending:false}),client.from('pastures').select('id,name').eq('farm_id',farmId)]);if(!error&&Array.isArray(events)){const names=new Map((pastureRows||[]).map(p=>[String(p.id),p.name]));cloudHeadcounts=events.map(e=>({...e,pasture_name:names.get(String(e.pasture_id))||''}))}}catch(e){console.warn('Dashboard headcounts could not refresh from cloud.',e)}paint()}
+function install(){prepareCards();paint();loadCloud();window.addEventListener('cv-local-change',()=>setTimeout(loadCloud,250));window.addEventListener('online',loadCloud);const old=window.render;if(typeof old==='function'&&!old.__cvDashboardCounts){const wrapped=async function(){const r=await old.apply(this,arguments);paint();return r};Object.assign(wrapped,old);wrapped.__cvDashboardCounts=true;window.render=wrapped}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })();
