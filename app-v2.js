@@ -107,7 +107,7 @@ async function render(){
   const collapsed=localStorage.getItem('cv2-herd-collapsed')!=='0';if(collapsed&&!q){herd.innerHTML='';return}
   let list=core.filter(inHerdView).filter(a=>[a.tag,a.breed,a.sire,a.dam,a.location,a.notes,a.sex,a.status,a.flag].join(' ').toLowerCase().includes(q));
   const reported=window.cvReportedInventory||{},reportedN=Object.prototype.hasOwnProperty.call(reported,herdView)?reported[herdView]:null;
-  const filterNote=herdView==='all'?'':`<div class="herd-filter-note"><b>${esc(herdViewLabel(herdView))}</b> • ${list.length} individual record${list.length===1?'':'s'}${reportedN!==null?` of ${reportedN} farm-reported head • ${Math.max(0,reportedN-core.filter(inHerdView).length)} not yet individually entered`:''}<button type="button" class="softbtn" onclick="clearHerdView()">Show All Cattle</button></div>`;
+  const filterNote=herdView==='all'?`<div class="herd-filter-note"><b>${list.length} individual records shown</b>${reportedN!==null?` • ${reportedN} head reported across five main groups (not all have individual records)`:''}</div>`:`<div class="herd-filter-note"><b>${esc(herdViewLabel(herdView))}</b> • ${list.length} individual record${list.length===1?'':'s'}${reportedN!==null?` of ${reportedN} farm-reported head • ${Math.max(0,reportedN-core.filter(inHerdView).length)} not yet individually entered`:''}<button type="button" class="softbtn" onclick="clearHerdView()">Show All Cattle</button></div>`;
   if(!list.length){herd.innerHTML=filterNote+'<div class="empty">No cattle match this view.</div>';return}
   const shown=list.slice(0,herdLimit),photos=await thumbnailMap(shown);if(seq!==renderSeq)return;
   const dupes=duplicatePermanentTags();let html=filterNote;
