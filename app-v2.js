@@ -39,9 +39,12 @@ function coreCattle(){return cattle.filter(a=>!SPECIAL_TYPES.has(a.sex))}
 function loadMoreHerd(){herdLimit+=60;render()}
 window.loadMoreHerd=loadMoreHerd;
 function cvHerdGroup(a){
+  const born=Date.parse(a?.birth||'');
+  const year=new Date().getFullYear();
+  const lateBorn=Number.isFinite(born)&&born>=Date.parse(year+'-06-01')&&born<=Date.now();
   if(!a||SPECIAL_TYPES.has(a.sex))return 'noncattle';
   if(a.sex==='Cow'){
-    const born=Date.parse(a.birth||'');
+    if(lateBorn)return 'lateCalves';
     if(Number.isFinite(born)&&born<=Date.now()&&Date.now()-born<365*86400000)return 'otherYoung';
     return 'females';
   }
@@ -52,21 +55,21 @@ function cvHerdGroup(a){
     return loc==='feedlot heifers'?'weaned':'replacement';
   }
   if(a.sex==='Steer')return loc==='feedlot steers'?'weaned':'otherYoung';
-  if(a.sex==='Calf')return 'otherYoung';
+  if(a.sex==='Calf')return lateBorn?'lateCalves':'otherYoung';
   return 'otherYoung';
 }
 window.cvHerdGroup=cvHerdGroup;
-function herdViewLabel(view){return({all:'All Tracked Cattle',young:'All Young Stock',females:'Mature Cow Records',sires:'Bulls',replacement:'Replacement / Growing Heifers',weaned:'Weaned Calves — Individual Records',otherYoung:'Other Calves / Feeders',breedingHerd:'Mature Cows & Bulls',needsCulled:'Needs Culled'}[view]||'All Tracked Cattle')}
+function herdViewLabel(view){return({all:'All Tracked Cattle',young:'All Young Stock',females:'Mature Cow Records',sires:'Bulls',replacement:'Replacement / Growing Heifers',weaned:'Weaned Calves — Individual Records',lateCalves:'June–October Calves (Recorded)',otherYoung:'Other Calves / Feeders',breedingHerd:'Mature Cows & Bulls',needsCulled:'Needs Culled'}[view]||'All Tracked Cattle')}
 function inHerdView(a){
   const group=cvHerdGroup(a);
-  if(herdView==='young')return ['weaned','replacement','otherYoung'].includes(group);
+  if(herdView==='young')return ['weaned','replacement','lateCalves','otherYoung'].includes(group);
   if(herdView==='breedingHerd')return group==='females'||group==='sires';
-  if(['females','sires','replacement','weaned','otherYoung'].includes(herdView))return group===herdView;
+  if(['females','sires','replacement','weaned','lateCalves','otherYoung'].includes(herdView))return group===herdView;
   if(herdView==='needsCulled')return a.sex==='Cow'&&a.flag==='Cull';
   return true;
 }
 function setHerdView(view='all'){
-  herdView=['all','young','females','sires','replacement','weaned','otherYoung','breedingHerd','needsCulled'].includes(view)?view:'all';
+  herdView=['all','young','females','sires','replacement','weaned','lateCalves','otherYoung','breedingHerd','needsCulled'].includes(view)?view:'all';
   herdLimit=60;
   const search=$('search');if(search)search.value='';
   try{localStorage.setItem('cv2-herd-collapsed','0')}catch{}
@@ -103,7 +106,8 @@ async function render(){
   const herd=$('herd');if(!herd)return;
   const collapsed=localStorage.getItem('cv2-herd-collapsed')!=='0';if(collapsed&&!q){herd.innerHTML='';return}
   let list=core.filter(inHerdView).filter(a=>[a.tag,a.breed,a.sire,a.dam,a.location,a.notes,a.sex,a.status,a.flag].join(' ').toLowerCase().includes(q));
-  const filterNote=herdView==='all'?'':`<div class="herd-filter-note"><b>${esc(herdViewLabel(herdView))}</b> • ${list.length} record${list.length===1?'':'s'}<button type="button" class="softbtn" onclick="clearHerdView()">Show All Cattle</button></div>`;
+  const reported=window.cvReportedInventory||{},reportedN=Object.prototype.hasOwnProperty.call(reported,herdView)?reported[herdView]:null;
+  const filterNote=herdView==='all'?`<div class="herd-filter-note"><b>${list.length} individual records shown</b>${reportedN!==null?` • ${reportedN} head reported across five main groups (not all have individual records)`:''}</div>`:`<div class="herd-filter-note"><b>${esc(herdViewLabel(herdView))}</b> • ${list.length} individual record${list.length===1?'':'s'}${reportedN!==null?` of ${reportedN} farm-reported head • ${Math.max(0,reportedN-core.filter(inHerdView).length)} not yet individually entered`:''}<button type="button" class="softbtn" onclick="clearHerdView()">Show All Cattle</button></div>`;
   if(!list.length){herd.innerHTML=filterNote+'<div class="empty">No cattle match this view.</div>';return}
   const shown=list.slice(0,herdLimit),photos=await thumbnailMap(shown);if(seq!==renderSeq)return;
   const dupes=duplicatePermanentTags();let html=filterNote;
