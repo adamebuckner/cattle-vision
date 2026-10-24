@@ -8,7 +8,7 @@ const money=v=>new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',
 const readArray=k=>{try{const x=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(x)?x:[]}catch{return[]}};
 const year=()=>new Date().getFullYear();
 const inYear=(x,y=year())=>String(x?.date||x?.eventDate||'').slice(0,4)===String(y);
-const isFeed=x=>FEED_RE.test(`${x?.category||''} ${x?.item||''} ${x?.description||''}`);
+const isFeed=x=>!/forecast|projected yearly|annual mineral (budget|allowance)/i.test(`${x?.category||''} ${x?.item||''} ${x?.description||''}`)&&FEED_RE.test(`${x?.category||''} ${x?.item||''} ${x?.description||''}`);
 const animalEvents=()=>readArray(ANIMAL_KEY);
 const pastureEvents=()=>readArray(PASTURE_KEY);
 function animalFeedYtd(animalId,y=year()){
