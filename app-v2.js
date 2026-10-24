@@ -39,9 +39,12 @@ function coreCattle(){return cattle.filter(a=>!SPECIAL_TYPES.has(a.sex))}
 function loadMoreHerd(){herdLimit+=60;render()}
 window.loadMoreHerd=loadMoreHerd;
 function cvHerdGroup(a){
+  const born=Date.parse(a?.birth||'');
+  const year=new Date().getFullYear();
+  const lateBorn=Number.isFinite(born)&&born>=Date.parse(year+'-06-01')&&born<=Date.now();
   if(!a||SPECIAL_TYPES.has(a.sex))return 'noncattle';
   if(a.sex==='Cow'){
-    const born=Date.parse(a.birth||'');
+    if(lateBorn)return 'lateCalves';
     if(Number.isFinite(born)&&born<=Date.now()&&Date.now()-born<365*86400000)return 'otherYoung';
     return 'females';
   }
@@ -52,21 +55,21 @@ function cvHerdGroup(a){
     return loc==='feedlot heifers'?'weaned':'replacement';
   }
   if(a.sex==='Steer')return loc==='feedlot steers'?'weaned':'otherYoung';
-  if(a.sex==='Calf')return 'otherYoung';
+  if(a.sex==='Calf')return lateBorn?'lateCalves':'otherYoung';
   return 'otherYoung';
 }
 window.cvHerdGroup=cvHerdGroup;
-function herdViewLabel(view){return({all:'All Tracked Cattle',young:'All Young Stock',females:'Mature Cow Records',sires:'Bulls',replacement:'Replacement / Growing Heifers',weaned:'Weaned Calves — Individual Records',otherYoung:'Other Calves / Feeders',breedingHerd:'Mature Cows & Bulls',needsCulled:'Needs Culled'}[view]||'All Tracked Cattle')}
+function herdViewLabel(view){return({all:'All Tracked Cattle',young:'All Young Stock',females:'Mature Cow Records',sires:'Bulls',replacement:'Replacement / Growing Heifers',weaned:'Weaned Calves — Individual Records',lateCalves:'June–October Calves (Recorded)',otherYoung:'Other Calves / Feeders',breedingHerd:'Mature Cows & Bulls',needsCulled:'Needs Culled'}[view]||'All Tracked Cattle')}
 function inHerdView(a){
   const group=cvHerdGroup(a);
-  if(herdView==='young')return ['weaned','replacement','otherYoung'].includes(group);
+  if(herdView==='young')return ['weaned','replacement','lateCalves','otherYoung'].includes(group);
   if(herdView==='breedingHerd')return group==='females'||group==='sires';
-  if(['females','sires','replacement','weaned','otherYoung'].includes(herdView))return group===herdView;
+  if(['females','sires','replacement','weaned','lateCalves','otherYoung'].includes(herdView))return group===herdView;
   if(herdView==='needsCulled')return a.sex==='Cow'&&a.flag==='Cull';
   return true;
 }
 function setHerdView(view='all'){
-  herdView=['all','young','females','sires','replacement','weaned','otherYoung','breedingHerd','needsCulled'].includes(view)?view:'all';
+  herdView=['all','young','females','sires','replacement','weaned','lateCalves','otherYoung','breedingHerd','needsCulled'].includes(view)?view:'all';
   herdLimit=60;
   const search=$('search');if(search)search.value='';
   try{localStorage.setItem('cv2-herd-collapsed','0')}catch{}
