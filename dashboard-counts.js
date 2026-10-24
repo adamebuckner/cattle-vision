@@ -8,7 +8,7 @@ let weaningRows=[];
 const ownGroup=a=>window.cvHerdGroup?window.cvHerdGroup(a):(a.sex==='Cow'?'females':a.sex==='Bull'?'sires':'otherYoung');
 const ownCattle=()=>herd().filter(a=>!SPECIAL.has(a.sex));
 function prepareCards(){
-  const stats=document.querySelector('.stats'),young=document.querySelector('[data-herd-view="young"]');if(!stats||!young)return;
+  const stats=document.querySelector('.stats'),young=document.querySelector('[data-herd-view="young"],[data-herd-view="weaned"]');if(!stats||!young)return;
   const set=(card,view,ico,title,sub,id)=>{
     card.dataset.herdView=view;card.setAttribute('onclick',"setHerdView('"+view+"')");card.onclick=()=>window.setHerdView?.(view);
     card.querySelector('.ico').textContent=ico;card.querySelector('strong').textContent=title;card.querySelector('small').textContent=sub;card.querySelector('b').id=id;
@@ -33,8 +33,9 @@ function paintWeaning(){
   const total=rows.reduce((n,r)=>n+(Number(r.animal_count)||0),0);
   const tagged=ownCattle().filter(a=>ownGroup(a)==='weaned').length;
   const unlinked=Math.max(0,total-tagged);
+  const potentialTypeErrors=ownCattle().filter(a=>a.sex==='Cow'&&Number.isFinite(Date.parse(a.birth||''))&&Date.parse(a.birth)<=Date.now()&&Date.now()-Date.parse(a.birth)<365*86400000);
   const dates=rows.slice().sort((a,b)=>String(a.event_date).localeCompare(String(b.event_date))).map(r=>`${String(r.event_date||'')} — ${Number(r.animal_count)||0} head`).join(' • ');
-  panel.innerHTML='<strong>Weaning batch ledger ('+y+')</strong><p style="margin:6px 0"><b>'+total+' batch-reported weaned calves</b> • '+tagged+' individual records in weaned lots'+(total?' • '+unlinked+' batch heads not yet matched to individual weaned-lot records':'')+'</p><small>'+ (dates||'No batch ledger loaded from the cloud for this year.')+'</small><p class="muted" style="margin:6px 0 0">Batch totals are separate from the individual-cattle record total. Do not add the two totals together without reconciling tags and lots.</p>';
+  panel.innerHTML='<strong>Weaning batch ledger ('+y+')</strong><p style="margin:6px 0"><b>'+total+' batch-reported weaned calves</b> • '+tagged+' individual records in weaned lots'+(total?' • '+unlinked+' batch heads not yet matched to individual weaned-lot records':'')+'</p><small>'+ (dates||'No batch ledger loaded from the cloud for this year.')+'</small><p class="muted" style="margin:6px 0 0">Batch totals are separate from the individual-cattle record total. Do not add the two totals together without reconciling tags and lots.</p>'+(potentialTypeErrors.length?'<p style="margin:6px 0;color:#a15d13"><b>Classification to review:</b> '+potentialTypeErrors.length+' cow-typed record(s) under one year old, excluded from mature cows until corrected. Tags: '+potentialTypeErrors.map(a=>String(a.tag||'N-T').replace(/[&<>"']/g,'')).join(', ')+'</p>':'');
 }
 function latestOverrides(){
   const latest=new Map();
