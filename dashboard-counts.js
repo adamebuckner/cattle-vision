@@ -6,7 +6,7 @@ function key(s){return String(s||'').trim().toLowerCase()}
 function herd(){return typeof cattle!=='undefined'&&Array.isArray(cattle)?cattle:[]}
 let weaningRows=[];
 let inventoryRows=[];
-const INVENTORY_CLASSES={'Mature Cows':'females','Replacement Heifers':'replacement','Weaned Calves':'weaned'};
+const INVENTORY_CLASSES={'Mature Cows':'females','Replacement Heifers':'replacement','Weaned Calves':'weaned','Bulls':'sires','June–October Calves':'lateCalves','Dry Cows (subset)':'dryCows','Recently Calved Cows (subset)':'recentlyCalvedCows'};
 function reportedInventory(){
   const rows=inventoryRows.slice().sort((a,b)=>String(b.event_date||'').localeCompare(String(a.event_date||''))||String(b.created_at||'').localeCompare(String(a.created_at||'')));
   const values={};
@@ -26,13 +26,14 @@ function prepareCards(){
     card.querySelector('.ico').textContent=ico;card.querySelector('strong').textContent=title;card.querySelector('small').textContent=sub;card.querySelector('b').id=id;
   };
   set(young,'weaned','WEANED','Weaned Calves — Recorded','Individual animals only • tap to see records','calfN');
-  const all=document.querySelector('[data-herd-view="all"]');if(all){all.querySelector('strong').textContent='Tracked Cattle Records';all.querySelector('small').textContent='Each animal once • excludes batch-only entries'}
+  const all=document.querySelector('[data-herd-view="all"]');if(all){all.querySelector('strong').textContent='Reported Farm Inventory';all.querySelector('small').textContent='Five main cattle groups • tap for individual records'}
   const cows=document.querySelector('[data-herd-view="females"]');if(cows){cows.querySelector('strong').textContent='Mature Cow Records';cows.querySelector('small').textContent='Does not include heifers'}
   const sires=document.querySelector('[data-herd-view="sires"]');if(sires)sires.querySelector('strong').textContent='Bulls';
   function addCard(id,view,ico,title,sub){if(document.getElementById(id))return;const card=young.cloneNode(true);set(card,view,ico,title,sub,id);card.querySelector('b').textContent='0';card.setAttribute('aria-pressed','false');stats.appendChild(card)}
-  addCard('replacementN','replacement','HEIFERS','Replacement / Growing Heifers','Not producing • tap to review');
+  addCard('replacementN','replacement','HEIFERS','Replacement / Growing Heifers','Not producing • tap for entered records');
+  addCard('lateCalvesN','lateCalves','CALVES','June–October Calves','Reported births • individual records may be incomplete');
   addCard('otherYoungN','otherYoung','FEEDERS','Other Calves / Feeders','Outside recorded weaned lots');
-  addCard('breedingHerdN','breedingHerd','BREEDING','Cow + Bull Records','Individually recorded animals only');
+  addCard('breedingHerdN','breedingHerd','BREEDING','Mature Cows + Bulls','Reported mature cows and bulls, not replacements');
   if(!document.getElementById('cvInventorySummary')){
     const panel=document.createElement('section');panel.id='cvInventorySummary';panel.className='panel';
     panel.style.cssText='margin:10px 0;padding:12px;';
@@ -73,29 +74,37 @@ function effectiveCounts(){
 function paint(){
   prepareCards();
   const animals=ownCattle();
-  const tagged={all:animals.length,females:0,sires:0,replacement:0,weaned:0,otherYoung:0,breedingHerd:0};
+  const tagged={all:animals.length,females:0,sires:0,replacement:0,weaned:0,lateCalves:0,otherYoung:0,breedingHerd:0};
   animals.forEach(a=>{const g=ownGroup(a);if(Object.prototype.hasOwnProperty.call(tagged,g))tagged[g]++});
   tagged.breedingHerd=tagged.females+tagged.sires;
   const reported=reportedInventory();
+  const main=['females','sires','replacement','weaned','lateCalves'];
+  const hasAll=main.every(k=>Object.prototype.hasOwnProperty.call(reported,k));
+  if(Object.prototype.hasOwnProperty.call(reported,'females')&&Object.prototype.hasOwnProperty.call(reported,'sires'))reported.breedingHerd=reported.females+reported.sires;
+  if(hasAll)reported.all=main.reduce((n,k)=>n+reported[k],0);
   window.cvReportedInventory={...reported};
   const displayed={...tagged,...reported};
-  for(const [k,id] of Object.entries({all:'totalN',females:'cowN',sires:'bullN',replacement:'replacementN',weaned:'calfN',otherYoung:'otherYoungN',breedingHerd:'breedingHerdN'})){
+  for(const [k,id] of Object.entries({all:'totalN',females:'cowN',sires:'bullN',replacement:'replacementN',weaned:'calfN',lateCalves:'lateCalvesN',otherYoung:'otherYoungN',breedingHerd:'breedingHerdN'})){
     const node=document.getElementById(id);if(node)node.textContent=String(displayed[k]??0);
   }
   const summary=document.getElementById('cvInventorySummary');
   if(summary){
-    const categories=[['females','Mature cows'],['weaned','Weaned calves'],['replacement','Replacement / growing heifers']];
+    const categories=[['females','Mature cows'],['sires','Bulls'],['replacement','Replacement / growing heifers'],['weaned','Weaned calves'],['lateCalves','June–October births (verify present)']];
     const cells=categories.map(([k,label])=>{
       const actual=Object.prototype.hasOwnProperty.call(reported,k)?reported[k]:null;
       const seen=tagged[k]||0;
       const unmatched=actual===null?null:Math.max(0,actual-seen);
-      return '<div style="flex:1 1 150px;padding:6px 0"><div class="muted">'+label+'</div><b style="font-size:20px">'+(actual===null?'—':actual)+'</b><div style="font-size:12px">'+seen+' individual records'+(unmatched!==null?' • '+unmatched+' awaiting individual reconciliation':'')+'</div></div>';
+      return '<div style="flex:1 1 140px;padding:6px 0"><div class="muted">'+label+'</div><b style="font-size:20px">'+(actual===null?'—':actual)+'</b><div style="font-size:12px">'+seen+' individual record'+(seen===1?'':'s')+(unmatched!==null?' • '+unmatched+' without matching individual records':'')+'</div></div>';
     }).join('');
-    const hasThree=categories.every(([k])=>Object.prototype.hasOwnProperty.call(reported,k));
-    const subtotal=hasThree?categories.reduce((n,[k])=>n+reported[k],0):null;
-    summary.innerHTML='<strong>Reported farm inventory (separate groups)</strong><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">'+cells+'</div>'
-      +(subtotal===null?'':'<div style="margin-top:7px"><b>'+subtotal+' head in these three groups</b> • bulls and other young stock not included</div>')
-      +'<p class="muted" style="margin:6px 0 0">Farm-reported headcounts are not extra animal records. Tapping a card shows only individually entered animals; unresolved headcounts are not assigned invented tags or pastures.</p>';
+    const subset=Object.prototype.hasOwnProperty.call(reported,'dryCows')&&Object.prototype.hasOwnProperty.call(reported,'recentlyCalvedCows')
+      ?'<div style="margin-top:6px">Of the <b>80 additional mature cows</b>: <b>'+reported.recentlyCalvedCows+' recently calved</b> and <b>'+reported.dryCows+' dry</b>. Both subsets are already included in the mature-cow count.</div>'
+      :'';
+    const subtotal=hasAll?reported.all:null;
+    const confirmed=hasAll?reported.females+reported.sires+reported.replacement+reported.weaned:null;
+    summary.innerHTML='<strong>Reported farm inventory — distinct cattle groups</strong><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">'+cells+'</div>'
+      +(subtotal===null?'':'<div style="margin-top:7px"><b>'+subtotal+' head in these five groups (provisional)</b> • '+confirmed+' excluding June–October calves until live headcount verified</div>')
+      +subset
+      +'<p class="muted" style="margin:6px 0 0">The 55 recent calvings are separate from the 291 weaned calves; confirm how many recent calves are alive and still present. Do not add the dry/calved cow subsets twice. Pasture and other feeder cattle may not all be reconciled to these groups. The individual-record total is '+tagged.all+', and taps show only entered animal records.</p>';
   }
   paintWeaning();
 }
