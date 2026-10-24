@@ -40,7 +40,11 @@ function loadMoreHerd(){herdLimit+=60;render()}
 window.loadMoreHerd=loadMoreHerd;
 function cvHerdGroup(a){
   if(!a||SPECIAL_TYPES.has(a.sex))return 'noncattle';
-  if(a.sex==='Cow')return 'females';
+  if(a.sex==='Cow'){
+    const born=Date.parse(a.birth||'');
+    if(Number.isFinite(born)&&born<=Date.now()&&Date.now()-born<365*86400000)return 'otherYoung';
+    return 'females';
+  }
   if(a.sex==='Bull')return 'sires';
   const loc=String(a.location||'').trim().toLowerCase();
   if(a.sex==='Heifer'){
