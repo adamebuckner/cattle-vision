@@ -5,6 +5,18 @@ let cloudHeadcounts=[];
 function key(s){return String(s||'').trim().toLowerCase()}
 function herd(){return typeof cattle!=='undefined'&&Array.isArray(cattle)?cattle:[]}
 let weaningRows=[];
+let inventoryRows=[];
+const INVENTORY_CLASSES={'Mature Cows':'females','Replacement Heifers':'replacement','Weaned Calves':'weaned'};
+function reportedInventory(){
+  const rows=inventoryRows.slice().sort((a,b)=>String(b.event_date||'').localeCompare(String(a.event_date||''))||String(b.created_at||'').localeCompare(String(a.created_at||'')));
+  const values={};
+  for(const row of rows){
+    const group=INVENTORY_CLASSES[row.animal_class];
+    const count=Number(row.animal_count);
+    if(group && !Object.prototype.hasOwnProperty.call(values,group) && Number.isSafeInteger(count) && count>=0)values[group]=count;
+  }
+  return values;
+}
 const ownGroup=a=>window.cvHerdGroup?window.cvHerdGroup(a):(a.sex==='Cow'?'females':a.sex==='Bull'?'sires':'otherYoung');
 const ownCattle=()=>herd().filter(a=>!SPECIAL.has(a.sex));
 function prepareCards(){
@@ -20,7 +32,12 @@ function prepareCards(){
   function addCard(id,view,ico,title,sub){if(document.getElementById(id))return;const card=young.cloneNode(true);set(card,view,ico,title,sub,id);card.querySelector('b').textContent='0';card.setAttribute('aria-pressed','false');stats.appendChild(card)}
   addCard('replacementN','replacement','HEIFERS','Replacement / Growing Heifers','Not producing • tap to review');
   addCard('otherYoungN','otherYoung','FEEDERS','Other Calves / Feeders','Outside recorded weaned lots');
-  addCard('breedingHerdN','breedingHerd','BREEDING','Mature Cows + Bulls','Excludes heifers and calves');
+  addCard('breedingHerdN','breedingHerd','BREEDING','Cow + Bull Records','Individually recorded animals only');
+  if(!document.getElementById('cvInventorySummary')){
+    const panel=document.createElement('section');panel.id='cvInventorySummary';panel.className='panel';
+    panel.style.cssText='margin:10px 0;padding:12px;';
+    stats.insertAdjacentElement('afterend',panel);
+  }
   if(!document.getElementById('cvWeaningLedger')){
     const panel=document.createElement('section');panel.id='cvWeaningLedger';panel.className='panel';
     panel.style.cssText='margin:10px 0;padding:12px;';
@@ -56,10 +73,30 @@ function effectiveCounts(){
 function paint(){
   prepareCards();
   const animals=ownCattle();
-  const totals={all:animals.length,females:0,sires:0,replacement:0,weaned:0,otherYoung:0,breedingHerd:0};
-  animals.forEach(a=>{const g=ownGroup(a);if(Object.prototype.hasOwnProperty.call(totals,g))totals[g]++});
-  totals.breedingHerd=totals.females+totals.sires;
-  for(const [k,id] of Object.entries({all:'totalN',females:'cowN',sires:'bullN',replacement:'replacementN',weaned:'calfN',otherYoung:'otherYoungN',breedingHerd:'breedingHerdN'})){const el=document.getElementById(id);if(el)el.textContent=String(totals[k]||0)}
+  const tagged={all:animals.length,females:0,sires:0,replacement:0,weaned:0,otherYoung:0,breedingHerd:0};
+  animals.forEach(a=>{const g=ownGroup(a);if(Object.prototype.hasOwnProperty.call(tagged,g))tagged[g]++});
+  tagged.breedingHerd=tagged.females+tagged.sires;
+  const reported=reportedInventory();
+  window.cvReportedInventory={...reported};
+  const displayed={...tagged,...reported};
+  for(const [k,id] of Object.entries({all:'totalN',females:'cowN',sires:'bullN',replacement:'replacementN',weaned:'calfN',otherYoung:'otherYoungN',breedingHerd:'breedingHerdN'})){
+    const node=document.getElementById(id);if(node)node.textContent=String(displayed[k]??0);
+  }
+  const summary=document.getElementById('cvInventorySummary');
+  if(summary){
+    const categories=[['females','Mature cows'],['weaned','Weaned calves'],['replacement','Replacement / growing heifers']];
+    const cells=categories.map(([k,label])=>{
+      const actual=Object.prototype.hasOwnProperty.call(reported,k)?reported[k]:null;
+      const seen=tagged[k]||0;
+      const unmatched=actual===null?null:Math.max(0,actual-seen);
+      return '<div style="flex:1 1 150px;padding:6px 0"><div class="muted">'+label+'</div><b style="font-size:20px">'+(actual===null?'—':actual)+'</b><div style="font-size:12px">'+seen+' individual records'+(unmatched!==null?' • '+unmatched+' awaiting individual reconciliation':'')+'</div></div>';
+    }).join('');
+    const hasThree=categories.every(([k])=>Object.prototype.hasOwnProperty.call(reported,k));
+    const subtotal=hasThree?categories.reduce((n,[k])=>n+reported[k],0):null;
+    summary.innerHTML='<strong>Reported farm inventory (separate groups)</strong><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">'+cells+'</div>'
+      +(subtotal===null?'':'<div style="margin-top:7px"><b>'+subtotal+' head in these three groups</b> • bulls and other young stock not included</div>')
+      +'<p class="muted" style="margin:6px 0 0">Farm-reported headcounts are not extra animal records. Tapping a card shows only individually entered animals; unresolved headcounts are not assigned invented tags or pastures.</p>';
+  }
   paintWeaning();
 }
 
@@ -86,12 +123,15 @@ async function loadCloud(){
     if(!window.supabase?.createClient)return;
     const farmId=localStorage.getItem('cv2-cloud-farm-id');if(!farmId)return;
     const cacheKey='cv2-weaning-ledger-'+farmId;
+    const inventoryCacheKey='cv2-herd-inventory-'+farmId;
     try{const cached=JSON.parse(localStorage.getItem(cacheKey)||'[]');if(Array.isArray(cached)){weaningRows=cached;paintWeaning()}}catch{}
+    try{const cached=JSON.parse(localStorage.getItem(inventoryCacheKey)||'[]');if(Array.isArray(cached)){inventoryRows=cached;paint()}}catch{}
     const client=window.supabase.createClient('https://rtyiqggxruwejqqyqtmv.supabase.co','sb_publishable_BxkgX1XJz8o_PsTb_LcVDQ_7DR6oHOk',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
     const {data:session}=await client.auth.getSession();if(!session?.session)return;
-    const [headResult,weanResult]=await Promise.all([
+    const [headResult,weanResult,inventoryResult]=await Promise.all([
       client.rpc('get_field_headcounts',{p_farm_id:farmId}),
-      client.from('herd_work_events').select('event_date,description,animal_count,animal_class').eq('farm_id',farmId).eq('description','Weaning').order('event_date',{ascending:true})
+      client.from('herd_work_events').select('event_date,description,animal_count,animal_class').eq('farm_id',farmId).eq('description','Weaning').order('event_date',{ascending:true}),
+      client.from('herd_work_events').select('event_date,animal_class,animal_count,created_at').eq('farm_id',farmId).eq('description','Herd inventory').order('event_date',{ascending:false}).limit(100)
     ]);
     if(!headResult.error){
       cloudHeadcounts=Array.isArray(headResult.data)?headResult.data:[];
@@ -101,6 +141,10 @@ async function loadCloud(){
     if(!weanResult.error){
       weaningRows=Array.isArray(weanResult.data)?weanResult.data:[];
       try{localStorage.setItem(cacheKey,JSON.stringify(weaningRows))}catch{}
+    }
+    if(!inventoryResult.error){
+      inventoryRows=Array.isArray(inventoryResult.data)?inventoryResult.data:[];
+      try{localStorage.setItem(inventoryCacheKey,JSON.stringify(inventoryRows))}catch{}
     }
   }catch(e){console.warn('Field counts or weaning ledger could not refresh.',e)}
   paint();
