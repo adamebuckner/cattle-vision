@@ -8,7 +8,7 @@ const money=v=>new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',
 const readArray=k=>{try{const x=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(x)?x:[]}catch{return[]}};
 const year=()=>new Date().getFullYear();
 const inYear=(x,y=year())=>String(x?.date||x?.eventDate||'').slice(0,4)===String(y);
-const isFeed=x=>FEED_RE.test(`${x?.category||''} ${x?.item||''} ${x?.description||''}`);
+const isFeed=x=>!/forecast|projected yearly|annual mineral (budget|allowance)/i.test(`${x?.category||''} ${x?.item||''} ${x?.description||''}`)&&FEED_RE.test(`${x?.category||''} ${x?.item||''} ${x?.description||''}`);
 const animalEvents=()=>readArray(ANIMAL_KEY);
 const pastureEvents=()=>readArray(PASTURE_KEY);
 function animalFeedYtd(animalId,y=year()){
@@ -24,7 +24,9 @@ function pastureStats(name,y=year()){
   const allocations=animalEvents().filter(x=>sourceIds.has(String(x.sourceId||''))&&inYear(x,y)&&isFeed(x));
   const animals=new Set(allocations.map(x=>String(x.animalId||'')).filter(Boolean));
   const allocated=allocations.reduce((s,x)=>s+(Number(x.amount)||0),0);
-  return{total,animalCount:animals.size,average:animals.size?allocated/animals.size:0};
+  const allocatedSources=new Set(allocations.map(a=>String(a.sourceId||'')));
+  const missingCost=rows.filter(r=>!allocatedSources.has(String(r.id||''))).reduce((n,r)=>n+(Number(r.totalCost)||0),0);
+  return{total,animalCount:animals.size,average:animals.size?allocated/animals.size:0,unallocatedCost:missingCost};
 }
 function idFromCard(el){
   const raw=el?.getAttribute('onclick')||'';
@@ -75,7 +77,7 @@ function decoratePastureCards(){
     const stats=pastureStats(name,y),head=card.querySelector('.pasture-card-head>div');if(!head)return;
     let line=head.querySelector('.cv-feed-ytd-line');
     if(!line){line=document.createElement('div');line.className='cv-feed-ytd-line';head.appendChild(line)}
-    line.innerHTML=`<b>${y} feed YTD: ${money(stats.total)}</b>${stats.animalCount?` • ${money(stats.average)} avg / animal fed`:''}`;
+    line.innerHTML=`<b>${y} feed YTD: ${money(stats.total)}</b>${stats.unallocatedCost>0.005?` • ${money(stats.unallocatedCost)} pending per-head allocation`:(stats.animalCount?` • ${money(stats.average)} avg / animal fed`:'')}`;
   });
 }
 function currentPastureName(){
@@ -88,7 +90,7 @@ function decoratePastureModal(){
   const stats=pastureStats(name),y=year();
   let banner=document.getElementById('cvPastureYtdFeedBanner');
   if(!banner){banner=document.createElement('div');banner.id='cvPastureYtdFeedBanner';banner.className='cv-ytd-feed-banner';host.insertAdjacentElement('beforebegin',banner)}
-  banner.innerHTML=`<b>${y} running feed total: ${money(stats.total)}</b>${stats.animalCount?`<br>${stats.animalCount} animal${stats.animalCount===1?'':'s'} received feed • ${money(stats.average)} average per animal`:''}<br><span class="muted">Each feeding stays in the history below; this number keeps adding through the year.</span>`;
+  banner.innerHTML=`<b>${y} running feed total: ${money(stats.total)}</b>${stats.unallocatedCost>0.005?`<br>${money(stats.unallocatedCost)} has no individual-animal allocation. Per-head average withheld until reconciled.`:(stats.animalCount?`<br>${stats.animalCount} animal${stats.animalCount===1?'':'s'} received feed • ${money(stats.average)} average per animal`:'')}<br><span class="muted">Each feeding stays in the history below; this number keeps adding through the year.</span>`;
 }
 function decorateLedger(){
   const host=document.getElementById('pcLedgerSummary');if(!host)return;
@@ -101,7 +103,7 @@ function decorateLedger(){
     const stats=pastureStats(name,y);
     let ytd=row.querySelector('.cv-feed-ytd-line');
     if(!ytd){ytd=document.createElement('div');ytd.className='cv-feed-ytd-line';span.insertAdjacentElement('afterend',ytd)}
-    ytd.textContent=`${y} feed YTD: ${money(stats.total)}${stats.animalCount?` • ${money(stats.average)} avg / animal fed`:''}`;
+    ytd.textContent=`${y} feed YTD: ${money(stats.total)}${stats.unallocatedCost>0.005?` • ${money(stats.unallocatedCost)} not yet allocated to individual animals`:(stats.animalCount?` • ${money(stats.average)} avg / animal fed`:'')}`;
   });
 }
 function decorateAll(){ensureStyle();decorateHerd();decorateAnimalRecord();decorateDashboard();decoratePastureCards();decoratePastureModal();decorateLedger()}
