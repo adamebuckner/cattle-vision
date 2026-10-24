@@ -38,10 +38,31 @@ function animalIcon(a){if(a.sex==='Livestock Guardian Dog')return'🐕';if(a.sex
 function coreCattle(){return cattle.filter(a=>!SPECIAL_TYPES.has(a.sex))}
 function loadMoreHerd(){herdLimit+=60;render()}
 window.loadMoreHerd=loadMoreHerd;
-function herdViewLabel(view){return({all:'All Cattle',young:'Young Stock',females:'Females / Cows',sires:'Sires / Bulls',needsCulled:'Needs Culled'}[view]||'All Cattle')}
-function inHerdView(a){if(herdView==='young')return['Calf','Heifer'].includes(a.sex);if(herdView==='females')return a.sex==='Cow';if(herdView==='sires')return a.sex==='Bull';if(herdView==='needsCulled')return a.sex==='Cow'&&a.flag==='Cull';return true}
+function cvHerdGroup(a){
+  if(!a||SPECIAL_TYPES.has(a.sex))return 'noncattle';
+  if(a.sex==='Cow')return 'females';
+  if(a.sex==='Bull')return 'sires';
+  const loc=String(a.location||'').trim().toLowerCase();
+  if(a.sex==='Heifer'){
+    if(a.flag==='Keep Replacement')return 'replacement';
+    return loc==='feedlot heifers'?'weaned':'replacement';
+  }
+  if(a.sex==='Steer')return loc==='feedlot steers'?'weaned':'otherYoung';
+  if(a.sex==='Calf')return 'otherYoung';
+  return 'otherYoung';
+}
+window.cvHerdGroup=cvHerdGroup;
+function herdViewLabel(view){return({all:'All Tracked Cattle',young:'All Young Stock',females:'Mature Cow Records',sires:'Bulls',replacement:'Replacement / Growing Heifers',weaned:'Weaned Calves — Individual Records',otherYoung:'Other Calves / Feeders',breedingHerd:'Mature Cows & Bulls',needsCulled:'Needs Culled'}[view]||'All Tracked Cattle')}
+function inHerdView(a){
+  const group=cvHerdGroup(a);
+  if(herdView==='young')return ['weaned','replacement','otherYoung'].includes(group);
+  if(herdView==='breedingHerd')return group==='females'||group==='sires';
+  if(['females','sires','replacement','weaned','otherYoung'].includes(herdView))return group===herdView;
+  if(herdView==='needsCulled')return a.sex==='Cow'&&a.flag==='Cull';
+  return true;
+}
 function setHerdView(view='all'){
-  herdView=['all','young','females','sires','needsCulled'].includes(view)?view:'all';
+  herdView=['all','young','females','sires','replacement','weaned','otherYoung','breedingHerd','needsCulled'].includes(view)?view:'all';
   herdLimit=60;
   const search=$('search');if(search)search.value='';
   try{localStorage.setItem('cv2-herd-collapsed','0')}catch{}
@@ -71,7 +92,7 @@ function duplicatePermanentTags(){const counts=new Map();for(const a of cattle){
 async function render(){
   const seq=++renderSeq,q=$('search')?.value.trim().toLowerCase()||'';
   if(q!==lastHerdQuery){lastHerdQuery=q;herdLimit=60}
-  const core=coreCattle(),counts={all:core.length,young:core.filter(a=>['Calf','Heifer'].includes(a.sex)).length,females:core.filter(a=>a.sex==='Cow').length,sires:core.filter(a=>a.sex==='Bull').length,needsCulled:core.filter(a=>a.sex==='Cow'&&a.flag==='Cull').length};
+  const core=coreCattle(),counts={all:core.length,young:core.filter(a=>cvHerdGroup(a)==='weaned').length,females:core.filter(a=>cvHerdGroup(a)==='females').length,sires:core.filter(a=>cvHerdGroup(a)==='sires').length,needsCulled:core.filter(a=>a.sex==='Cow'&&a.flag==='Cull').length};
   if($('totalN'))$('totalN').textContent=counts.all;if($('calfN'))$('calfN').textContent=counts.young;if($('cowN'))$('cowN').textContent=counts.females;if($('bullN'))$('bullN').textContent=counts.sires;if($('needsCulledN'))$('needsCulledN').textContent=counts.needsCulled;
   window.cvUpdateHerdCollapse?.();window.cvUpdateNoTagHerdCount?.();
   document.querySelectorAll('[data-herd-view]').forEach(card=>{const active=card.dataset.herdView===herdView;card.classList.toggle('active',active);card.setAttribute('aria-pressed',String(active))});
