@@ -90,7 +90,7 @@ function decoratePastureModal(){
   const stats=pastureStats(name),y=year();
   let banner=document.getElementById('cvPastureYtdFeedBanner');
   if(!banner){banner=document.createElement('div');banner.id='cvPastureYtdFeedBanner';banner.className='cv-ytd-feed-banner';host.insertAdjacentElement('beforebegin',banner)}
-  banner.innerHTML=`<b>${y} running feed total: ${money(stats.total)}</b>${stats.animalCount?`<br>${stats.animalCount} animal${stats.animalCount===1?'':'s'} received feed • ${money(stats.average)} average per animal`:''}<br><span class="muted">Each feeding stays in the history below; this number keeps adding through the year.</span>`;
+  banner.innerHTML=`<b>${y} running feed total: ${money(stats.total)}</b>${stats.unallocatedCost>0.005?`<br>${money(stats.unallocatedCost)} has no individual-animal allocation. Per-head average withheld until reconciled.`:(stats.animalCount?`<br>${stats.animalCount} animal${stats.animalCount===1?'':'s'} received feed • ${money(stats.average)} average per animal`:'')}<br><span class="muted">Each feeding stays in the history below; this number keeps adding through the year.</span>`;
 }
 function decorateLedger(){
   const host=document.getElementById('pcLedgerSummary');if(!host)return;
@@ -103,7 +103,7 @@ function decorateLedger(){
     const stats=pastureStats(name,y);
     let ytd=row.querySelector('.cv-feed-ytd-line');
     if(!ytd){ytd=document.createElement('div');ytd.className='cv-feed-ytd-line';span.insertAdjacentElement('afterend',ytd)}
-    ytd.textContent=`${y} feed YTD: ${money(stats.total)}${stats.animalCount?` • ${money(stats.average)} avg / animal fed`:''}`;
+    ytd.textContent=`${y} feed YTD: ${money(stats.total)}${stats.unallocatedCost>0.005?` • ${money(stats.unallocatedCost)} not yet allocated to individual animals`:(stats.animalCount?` • ${money(stats.average)} avg / animal fed`:'')}`;
   });
 }
 function decorateAll(){ensureStyle();decorateHerd();decorateAnimalRecord();decorateDashboard();decoratePastureCards();decoratePastureModal();decorateLedger()}
